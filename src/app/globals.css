@@ -25,3 +25,9 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+@layer base {
+  input {
+    @apply bg-gray-900;
+  }
+}
