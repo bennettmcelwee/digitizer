@@ -6,7 +6,7 @@ import without from 'ramda/src/without'
 import Controls from './components/Controls'
 import Messager from './components/Messager'
 import StatusPanel from './components/Status'
-import { Settings, Snapshot, Status } from './types'
+import { Settings, Snapshot, Status } from '../types'
 
 const App = () => {
 
@@ -64,7 +64,7 @@ const App = () => {
   }
 
   const createWorker = () => {
-    const worker = new Worker(new URL('worker.js', import.meta.url))
+    const worker = new Worker(new URL('../worker.js', import.meta.url))
     worker.onmessage = e => {
       if (e.data.status) {
         setStatus(e.data.status)

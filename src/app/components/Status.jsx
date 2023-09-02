@@ -4,7 +4,6 @@ const Status = ({ settings, snapshot }) => {
     const countsString = snapshot.setCounts?.map(_ => _.toLocaleString()).join(' ')
     return (
     <section className="p-4 border rounded-lg">
-        <h2>Num, num</h2>
         {settings &&
             <p>Making numbers with digits{' '}
                 {settings.digitString}
@@ -12,7 +11,6 @@ const Status = ({ settings, snapshot }) => {
                 for {settings.maxDurationSeconds} seconds
             </p>
         }
-        <h2>Status</h2>
         <div>Elapsed time: {snapshot.time} seconds</div>
         <div>Current task: <strong>{snapshot.label}</strong></div>
         <div>Checked {countsString ?? 'no'} sets of numbers</div>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Settings, Status } from '../types'
+import { Settings, Status } from '../../types'
 
 interface ControlsProps {
   settings?: Settings,
@@ -26,7 +26,7 @@ const Controls = ({settings, status, start, pause, resume, stop, setValue}: Cont
   const isRunning = (status === 'running')
 
   return (
-    <section className="p-4 border rounded-lg flex-col gap-2">
+    <section className="p-4 border rounded-lg flex flex-col gap-2">
         <h2>Settings</h2>
         <div className="flex items-center gap-2">
           <label htmlFor="digits" className="inline-block w-30">
@@ -91,7 +91,7 @@ const Controls = ({settings, status, start, pause, resume, stop, setValue}: Cont
           {' '}seconds maximum
         </label>
 
-        <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit my-4">
+        <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
 
           <button onClick={start}
             className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
