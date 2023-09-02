@@ -18,6 +18,9 @@ onmessage = function(e) {
   else if (e.data.resume) {
     resume(global.state)
   }
+  else if (e.data.stop) {
+    stop(global.state)
+  }
 }
 
 if (typeof global === 'undefined') {
@@ -86,15 +89,26 @@ function resume(state) {
     scheduleContinue(state)
 }
 
+function stop(state) {
+    state.running = false
+    showMessage('Resuming')
+}
+
 function scheduleContinue(state) {
     setTimeout(doContinue, 0, state)
 }
 
 function doContinue(state) {
     try {
+        if ( ! state.running) {
+            throw 'stop'
+        }
         if (state.pause) {
             throw 'pause'
         }
+        postMessage({
+            status: 'running'
+        })
         let processing = true
         while (processing) {
             processing = doRound(state)
@@ -102,6 +116,9 @@ function doContinue(state) {
         }
         showMessage('Finished (exhausted)')
         showFormulas(state)
+        postMessage({
+            status: 'idle'
+        })
     }
     catch (ex) {
         if (ex === 'yield') {
@@ -110,10 +127,23 @@ function doContinue(state) {
         }
         else if (ex === 'pause') {
             showMessage('Pausing')
+            postMessage({
+                status: 'paused'
+            })
+        }
+        else if (ex === 'stop') {
+            showMessage('Finished (stopped)')
+            showFormulas(state)
+            postMessage({
+                status: 'idle'
+            })
         }
         else if (ex === 'timeout') {
             showMessage('Finished (timed out)')
             showFormulas(state)
+            postMessage({
+                status: 'idle'
+            })
         }
         else {
             throw ex
@@ -137,6 +167,7 @@ function buildSettings(settings) {
 
 function buildInitialState() {
     const state = {
+        running: true,
         lastMilestone: { round: 0 },
         startTimestamp: new Date().getTime(),
         formulas: {}

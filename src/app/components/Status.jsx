@@ -3,7 +3,7 @@ import React from 'react';
 const Status = ({ settings, snapshot }) => {
     const countsString = snapshot.setCounts?.map(_ => _.toLocaleString()).join(' ')
     return (
-    <div className="status">
+    <section className="p-4 border rounded-lg">
         <h2>Num, num</h2>
         {settings &&
             <p>Making numbers with digits{' '}
@@ -28,7 +28,7 @@ const Status = ({ settings, snapshot }) => {
                 </ul>
             </div>
         }
-    </div>
+    </section>
     )
 }
 

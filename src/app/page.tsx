@@ -1,37 +1,35 @@
 'use client'
 
-import React, { Component, useEffect, useState } from 'react'
-import append from 'ramda/src/append'
-import difference from 'ramda/src/difference'
+import React, { useEffect, useState } from 'react'
 import union from 'ramda/src/union'
 import without from 'ramda/src/without'
 import Controls from './components/Controls'
 import Messager from './components/Messager'
-import Status from './components/Status'
+import StatusPanel from './components/Status'
+import { Settings, Snapshot, Status } from './types'
 
-const App = (props) => {
+const App = () => {
 
-  const [messages, setMessages] = useState([])
-  const [snapshot, setSnapshot] = useState({})
-  const [settings, setSettings] = useState({})
-  const [worker, setWorker] = useState()
+  const [status, setStatus] = useState<Status>('idle')
+  const [messages, setMessages] = useState<string[]>([])
+  const [snapshot, setSnapshot] = useState<Snapshot | {}>({})
+  const [settings, setSettings] = useState<Settings>()
+  const [worker, setWorker] = useState<Worker>()
 
-  const setValue = (name, value) => {
+  const setValue = (name: string, value: boolean | number | string) => {
     const opMatch = name.match(/^symbol(.+)$/)
     if (opMatch) {
       const sym = opMatch[1]
-      setSettings(settings => ({
-        ...settings,
-        symbols: (value ? union : without)([sym], settings.symbols)
-        })
-      )
+      setSettings(settings => (settings ? {
+        ...(settings),
+        symbols: (value ? union : without)([sym], settings.symbols ?? [])
+      } : settings))
     }
     else {
-      setSettings(settings => ({
+      setSettings(settings => (settings ? {
         ...settings,
         [name]: value
-        })
-      )
+      } : settings))
     }
   }
 
@@ -46,7 +44,7 @@ const App = (props) => {
   }, [])
 
   const start = () => {
-    worker.postMessage({start: {
+    worker?.postMessage({start: {
       options: {
         ...settings
       }
@@ -54,16 +52,23 @@ const App = (props) => {
   }
 
   const pause = () => {
-    worker.postMessage({pause: true})
+    worker?.postMessage({pause: true})
   }
 
   const resume = () => {
-    worker.postMessage({resume: true})
+    worker?.postMessage({resume: true})
+  }
+
+  const stop = () => {
+    worker?.postMessage({stop: true})
   }
 
   const createWorker = () => {
     const worker = new Worker(new URL('worker.js', import.meta.url))
     worker.onmessage = e => {
+      if (e.data.status) {
+        setStatus(e.data.status)
+      }
       if (e.data.settings) {
         setSettings(e.data.settings)
       }
@@ -75,15 +80,6 @@ const App = (props) => {
         setMessages([])
       }
       if (e.data.snapshot) {
-        // Update messages
-        if (e.data.snapshot.wholes && e.data.snapshot.wholes.length) {
-          const newWholes = difference(e.data.snapshot.wholes ?? [], snapshot.wholes ?? [])
-          if (newWholes.length) {
-            const newMessages = messages ?? []
-            newMessages.push("New:" + newWholes)
-            setMessages(newMessages)
-          }
-        }
         setSnapshot(e.data.snapshot)
       }
     }
@@ -91,15 +87,17 @@ const App = (props) => {
   }
 
   return (
-    <main>
+    <main className="p-4">
       <Controls
         settings={settings}
         setValue={setValue}
+        status={status}
         start={start}
         pause={pause}
         resume={resume}
+        stop={stop}
       />
-      <Status settings={settings} snapshot={snapshot} />
+      <StatusPanel settings={settings} snapshot={snapshot} />
       <Messager messages={messages} />
     </main>
   )
