@@ -3,77 +3,94 @@
 import React, { useEffect, useState } from 'react'
 import union from 'ramda/src/union'
 import without from 'ramda/src/without'
-import Controls from './components/Controls'
-import Messager from './components/Messager'
-import StatusPanel from './components/Status'
-import { Settings, Snapshot, Status } from '../types'
+import ControlPanel from './components/ControlPanel'
+import MessagePanel from './components/MessagePanel'
+import StatusPanel from './components/StatusPanel'
+import { Options, Snapshot, Status } from '../types'
+import { WorkerMessage } from '@/worker'
+
+const DEFAULT_OPTIONS: Options = {
+  digitString: (new Date().getFullYear()).toString(),
+  useAllDigits: true,
+  symbols: ['( )', '+', '-', '×', '÷', '&', '!', '^'],
+  // Display
+  displayLimit: 100,
+  quiet: false,
+  heartbeatSeconds: 1,
+  statusSeconds: 1,
+  // Internals
+  valueLimit: 10000,
+  // Timing
+  yieldSeconds: 2,
+  maxDurationSeconds: 5,
+  minHeartbeats: 1
+}
+
+export interface AppMessage {
+  status?: Status,
+  message?: string,
+  clearMessages?: true,
+  snapshot?: Snapshot,
+}
 
 const App = () => {
 
   const [status, setStatus] = useState<Status>('idle')
   const [messages, setMessages] = useState<string[]>([])
-  const [snapshot, setSnapshot] = useState<Snapshot | {}>({})
-  const [settings, setSettings] = useState<Settings>()
+  const [snapshot, setSnapshot] = useState<Snapshot>()
+  const [options, setOptions] = useState<Options>(DEFAULT_OPTIONS)
   const [worker, setWorker] = useState<Worker>()
+
+  function postWorkerMessage(message: WorkerMessage) {
+    worker?.postMessage(message)
+  }
 
   const setValue = (name: string, value: boolean | number | string) => {
     const opMatch = name.match(/^symbol(.+)$/)
     if (opMatch) {
       const sym = opMatch[1]
-      setSettings(settings => (settings ? {
-        ...(settings),
-        symbols: (value ? union : without)([sym], settings.symbols ?? [])
-      } : settings))
+      setOptions(options => ({
+        ...options,
+        symbols: (value ? union : without)([sym], options.symbols ?? [])
+      }))
     }
     else {
-      setSettings(settings => (settings ? {
-        ...settings,
+      setOptions(options => ({
+        ...options,
         [name]: value
-      } : settings))
+      }))
     }
   }
 
   useEffect(() => {
     const theWorker = createWorker()
     setWorker(theWorker)
-    theWorker.postMessage({init: {
-      options: {
-        ...settings
-      }
-    }})
   }, [])
 
   const start = () => {
-    worker?.postMessage({start: {
-      options: {
-        ...settings
-      }
-    }})
+    postWorkerMessage({command: 'start', options})
   }
 
   const pause = () => {
-    worker?.postMessage({pause: true})
+    postWorkerMessage({command: 'pause'})
   }
 
   const resume = () => {
-    worker?.postMessage({resume: true})
+    postWorkerMessage({command: 'resume'})
   }
 
   const stop = () => {
-    worker?.postMessage({stop: true})
+    postWorkerMessage({command: 'stop'})
   }
 
   const createWorker = () => {
-    const worker = new Worker(new URL('../worker.js', import.meta.url))
-    worker.onmessage = e => {
+    const worker = new Worker(new URL('../worker.ts', import.meta.url))
+    worker.onmessage = (e: MessageEvent<AppMessage>) => {
       if (e.data.status) {
         setStatus(e.data.status)
       }
-      if (e.data.settings) {
-        setSettings(e.data.settings)
-      }
       if (e.data.message) {
-        setMessages(messages => [...messages, e.data.message])
+        setMessages(messages => [...messages, e.data.message!])
         console.log('Message: ', e.data.message)
       }
       if (e.data.clearMessages) {
@@ -88,8 +105,8 @@ const App = () => {
 
   return (
     <main className="p-4">
-      <Controls
-        settings={settings}
+      <ControlPanel
+        options={options}
         setValue={setValue}
         status={status}
         start={start}
@@ -97,8 +114,8 @@ const App = () => {
         resume={resume}
         stop={stop}
       />
-      <StatusPanel settings={settings} snapshot={snapshot} />
-      <Messager messages={messages} />
+      <StatusPanel options={options} snapshot={snapshot} />
+      <MessagePanel messages={messages} />
     </main>
   )
 }

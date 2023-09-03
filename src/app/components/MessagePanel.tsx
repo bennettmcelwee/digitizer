@@ -1,10 +1,10 @@
 import React from 'react';
 
-interface MessagerProps {
+interface MessagePanelProps {
     messages: string[],
 }
 
-const Messager = ({ messages }: MessagerProps) => (
+const MessagePanel = ({ messages }: MessagePanelProps) => (
     <section className="p-4 border rounded-lg">
         <h2>Progress</h2>
         {messages && messages.length ?
@@ -15,4 +15,4 @@ const Messager = ({ messages }: MessagerProps) => (
     </section>
 )
 
-export default Messager
+export default MessagePanel
