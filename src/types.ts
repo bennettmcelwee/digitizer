@@ -5,13 +5,13 @@ export type Status = 'idle' | 'running' | 'paused'
 export type FormulaTextMap = Record<number, string>
 
 export interface Snapshot {
-    time: string,
-    label: string,
+    time?: number,
+    processedSetCount: number,
+    currentRound?: number,
+    currentSetCount: number,
+    currentSetProcessed?: number,
     numberCount: number,
-    setCounts: number[],
-    setCount: number,
-    setCurrent?: number,
-    numbers?: number[],
+    numbers?: Set<number>,
     formulaMap?: FormulaTextMap,
 }
 
@@ -27,7 +27,6 @@ export interface Options {
     displayLimit: number,
     quiet: boolean,
     heartbeatSeconds: number,
-    statusSeconds: number,
     // Internals
     valueLimit: number,
     // Timing

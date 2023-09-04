@@ -4,14 +4,14 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --background-start-rgb: 236, 238, 240;
   --background-end-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
+    --background-start-rgb: 20, 25, 30;
     --background-end-rgb: 0, 0, 0;
   }
 }
@@ -27,7 +27,18 @@ body {
 }
 
 @layer base {
-  input {
-    @apply bg-gray-900;
+  input[type=text],input[type=number] {
+    @apply rounded-lg border-2 px-2 py-1
+      text-gray-900 bg-gray-200 border-gray-500
+      dark:text-gray-200 dark:bg-gray-900 dark:border-gray-200;
+  }
+  button {
+    @apply text-center rounded-lg border-2 px-2 py-1.5
+      hover:bg-teal-800 text-gray-100 bg-green-700 border-green-700 dark:border-gray-200
+      focus:relative;
+  }
+  button.dimmed {
+    @apply text-gray-100 bg-gray-400 border-gray-400
+      dark:text-gray-500 dark:bg-gray-900 dark:border-gray-500
   }
 }

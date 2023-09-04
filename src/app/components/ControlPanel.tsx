@@ -36,18 +36,25 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
   const isRunning = (status === 'running')
 
-  const symbolDetails: SymbolDetails[] = combineDescriptions(allOperators)
+  const symbolDetails: SymbolDetails[] = [
+    {
+      symbol: '( )',
+      description: 'Group expressions, e.g. 2×(3+4) = 14',
+    },
+    ...combineDescriptions(allOperators)
+  ]
 
   return (
     <section className="p-4 border rounded-lg flex flex-col gap-2">
-        <h2>Settings</h2>
+        <h2>Digitizer</h2>
         <div className="flex items-center gap-2">
           <label htmlFor="digits" className="inline-block w-30">
             Digits
           </label>
           <input id="digits"
-            className="w-24 tracking-widest rounded-lg border-2 px-2 py-1 bg-gray-900 border-gray-500 text-white mr-4"
-            name="digitString" type="string"
+            type="text"
+            className="w-24 tracking-widest mr-4"
+            name="digitString"
             value={options.digitString ?? ''} onChange={onChange}
             disabled={isRunning}
           />
@@ -71,22 +78,18 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
         <div className="flex items-center gap-2">
           Symbols
-          <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
+          <div className="flex flex-wrap w-max gap-2">
             {symbolDetails.map(sym => {
                 const name = 'symbol' + sym.symbol
                 const isChecked = options.symbols.includes(sym.symbol)
                 return (
                   <button key={sym.symbol}
                     title={sym.description}
-                    className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
-                      isChecked ?
-                        'bg-green-700 border-gray-200 text-white' :
-                        'bg-gray-900 border-gray-500 text-white'
-                      }`}
+                    className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'}`}
                     onClick={() => setValue(name, !isChecked)}
                     disabled={isRunning}
                     >
-                    {sym.symbol}
+                    <b>{sym.symbol}</b>
                   </button>
                 )
               })
@@ -96,7 +99,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
         <label className="cursor-pointer">
           Stop after{' '}
-          <input className="w-20 rounded-lg border-2 px-2 py-1 bg-gray-900 border-gray-500 text-white"
+          <input className="w-20"
             name="maxDurationSeconds" type="number"
             value={options.maxDurationSeconds ?? 0} onChange={onChange}
             disabled={isRunning}
@@ -107,36 +110,20 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
 
           <button onClick={start}
-            className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
-              status !== 'running' ?
-                'bg-green-700 border-gray-200 text-white' :
-                'bg-gray-900 border-gray-500 text-gray-500'
-              }`}
+            className={status !== 'running' ? '' : 'dimmed'}
           >Start</button>
 
           <button onClick={pause}
-            className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
-              (status === 'running') ?
-                'bg-green-700 border-gray-200 text-white' :
-                'bg-gray-900 border-gray-500 text-gray-500'
-              }`}
+            className={status === 'running' ? '' : 'dimmed'}
           >Pause</button>
 
           <button onClick={resume}
-            className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
-              (status === 'paused') ?
-                'bg-green-700 border-gray-200 text-white' :
-                'bg-gray-900 border-gray-500 text-gray-500'
-              }`}
+            className={status === 'paused' ? '' : 'dimmed'}
           >Resume</button>
 
           <button onClick={stop}
-            className={`text-center rounded-lg border-2 px-2 py-1.5 hover:bg-teal-800 focus:relative ${
-              (status !== 'idle') ?
-                'bg-black border-gray-200 text-white' :
-                'bg-gray-900 border-gray-500 text-gray-500'
-              }`}
-          >Stop</button>
+            className={status !== 'idle' ? '' : 'dimmed'}
+            >Stop</button>
         </div>
     </section>
   )

@@ -16,12 +16,11 @@ const DEFAULT_OPTIONS: Options = {
   // Display
   displayLimit: 100,
   quiet: false,
-  heartbeatSeconds: 1,
-  statusSeconds: 1,
+  heartbeatSeconds: 0.5,
   // Internals
   valueLimit: 10000,
   // Timing
-  yieldSeconds: 2,
+  yieldSeconds: 1,
   maxDurationSeconds: 5,
   minHeartbeats: 1
 }
@@ -35,6 +34,7 @@ export interface AppMessage {
 
 const App = () => {
 
+  const [runId, setRunId] = useState<string>()
   const [status, setStatus] = useState<Status>('idle')
   const [messages, setMessages] = useState<string[]>([])
   const [snapshot, setSnapshot] = useState<Snapshot>()
@@ -68,6 +68,7 @@ const App = () => {
   }, [])
 
   const start = () => {
+    setRunId(new Date().toString())
     postWorkerMessage({command: 'start', options})
   }
 
@@ -104,7 +105,7 @@ const App = () => {
   }
 
   return (
-    <main className="p-4">
+    <main className="p-4 text-gray-900 dark:text-gray-200">
       <ControlPanel
         options={options}
         setValue={setValue}
@@ -114,7 +115,7 @@ const App = () => {
         resume={resume}
         stop={stop}
       />
-      <StatusPanel options={options} snapshot={snapshot} />
+      <StatusPanel runId={runId} options={options} snapshot={snapshot} />
       <MessagePanel messages={messages} />
     </main>
   )

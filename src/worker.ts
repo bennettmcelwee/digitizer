@@ -5,13 +5,24 @@ import { AppMessage } from './app/page'
 type FormulaMap = Record<number, Formula>
 
 interface State {
+    running: boolean,
+    pause: boolean,
+    // round
+    completedRounds: number,
+    progress?: {
+        round: number,
+        processed: number,
+        sets: FormulaSet[],
+    } | null,
+    // overall
+    sets: FormulaSet[],
+    processedSetCount: number,
     formulas: FormulaMap,
-    [key: string]: any,
-}
+    allSetIds: Set<string>,
 
-let state: State = {
-    formulas: [],
-    running: false,
+    startTimestamp?: number,
+    nextHeartbeat?: number,
+    nextYield?: number,
 }
 
 let settings: Settings
@@ -23,22 +34,24 @@ export type WorkerMessage = {
     command: 'pause' | 'resume' | 'stop'
 }
 
+let savedState: State
+
 onmessage = function(e: MessageEvent<WorkerMessage>) {
     switch (e.data.command) {
         case 'start': {
-            state = start(e.data.options)
+            savedState = start(e.data.options)
             break;
         }
         case 'pause': {
-            pause(state)
+            pause(savedState)
             break;
         }
         case 'resume': {
-            resume(state)
+            resume(savedState)
             break;
         }
         case 'stop': {
-            stop(state)
+            stop(savedState)
             break;
         }
     }
@@ -87,7 +100,6 @@ function doContinue(state: State) {
         let processing = true
         while (processing) {
             processing = doRound(state)
-            state.lastMilestone = { round: state.lastMilestone.round + 1 }
         }
         showMessage('Finished (exhausted)')
         showFormulas(state)
@@ -139,30 +151,35 @@ function buildSettings(options: Options): Settings {
     }
 }
 
-function buildInitialState() {
-    const state: State = {
+function buildInitialState(): State {
+    const digits = settings.digits ?? []
+    // add a single set consisting of all the digits
+    const sets = [{ formulas: digits.map(digitToFormula) }]
+    const state = {
         running: true,
-        lastMilestone: { round: 0 },
+        pause: false,
+        completedRounds: 0,
+        sets,
+        processedSetCount: 0,
+        allSetIds: new Set(sets.map(setId)),
         startTimestamp: new Date().getTime(),
         formulas: {}
     }
-
-    const digits = settings.digits ?? []
-    // add a single set consisting of all the digits
-    const initialSets: FormulaSet[] = [{ formulas: digits.map(digitToFormula) }]
-    state.sets = initialSets
-    state.setCounts = []
-    state.allSetIds = new Set(initialSets.map(setId))
-
     return state
 }
 
 // return true if we need to keep going, false if we're finished
 function doRound(state: State) {
 
-    state.setsInProgress = state.setsInProgress ?? []
+    if (!state.progress) {
+        state.progress = {
+            round: state.completedRounds + 1,
+            sets: [],
+            processed: 0,
+        }
+    }
 
-    for (let i = state.lastMilestone.stage?.sets?.last ?? 0; i < state.sets.length; ) {
+    for (let i = state.progress.processed; i < state.sets.length; ) {
         const iterationSets: FormulaSet[] = []
         for (let j = 0; j < 100 && i < state.sets.length; ++j) {
             iterationSets.push(...evolveSet(state.sets[i]))
@@ -172,27 +189,20 @@ function doRound(state: State) {
         for (const set of iterationSets) {
             const id = setId(set)
             if ( ! state.allSetIds.has(id)) {
-                state.setsInProgress.push(set)
+                state.progress.sets.push(set)
                 state.allSetIds.add(id)
             }
+            state.processedSetCount++
         }
-        // or just add them all
-        // state.setsInProgress.push(...iterationSets)
+        state.progress.processed = i
 
-        state.lastMilestone.stage = {
-            sets: {
-                last: i,
-                fraction: (i+1) / state.sets.length
-            }
-        }
         heartbeat(state)
     }
 
     // done calculations for this round
-    state.lastMilestone.stage = {}
-    state.setCounts.push(state.sets.length)
-    state.sets = state.setsInProgress
-    state.setsInProgress = []
+    state.sets = state.progress.sets
+    state.completedRounds++
+    state.progress = null
 
     for (const set of state.sets) {
         if (set.formulas.length == 1 || ! settings.useAllDigits) {
@@ -276,10 +286,6 @@ function applyBinaryOperators(operators: BinaryOperator[]) {
 ///// Utilities
 
 
-function timestamp() {
-    return ((new Date().getTime() - state.startTimestamp) / 1000).toFixed(3)
-}
-
 function setId(set: FormulaSet) {
     return set.formulas.map(_ => _.text).sort().join(',')
 }
@@ -288,7 +294,7 @@ function setId(set: FormulaSet) {
 
 const LEADING_ZERO = /(?<!\d)0\d/
 
-function addFormulas(pool: FormulaMap, formulas: [Formula]) {
+function addFormulas(pool: FormulaMap, formulas: Formula[]) {
     // add formulas that qualify (whole numbers within the limit)
     formulas.forEach(formula => {
         if (formula
@@ -340,36 +346,36 @@ function without<T>(array: T[], remove: T[]) {
 ///// Output
 
 
-function showMilestone(state: State, label = getLabel(state)) {
-    const time = timestamp()
-    const numbers = Object.values(state.formulas).map(_ => _.value)
-    console.log(`Milestone [${label}]`)//, numbers)
-    console.log(time, label, 'Numbers', numbers.length)
+function showSnapshot(state: State) {
+    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
+    const setCount = state.sets.length
+    const numberCount = Object.keys(state.formulas).length
+    console.log(time, 'Sets', setCount, 'Numbers', numberCount)
     postAppMessage({
       snapshot: {
         time,
-        label,
-        numberCount: numbers.length,
-        setCounts: state.setCounts,
-        setCount: state.sets.length,
-        setCurrent: state.lastMilestone.stage.sets?.last ?? 1,
-        numbers,
+        currentRound: state.progress?.round,
+        currentSetCount: state.sets.length,
+        currentSetProcessed: state.progress?.processed ?? 0,
+        processedSetCount: state.processedSetCount,
+        numberCount,
       }})
 }
 
-function showSnapshot(state: State, label = getLabel(state)) {
-    const time = timestamp()
-    const setCount = state.sets.length
-    const numberCount = Object.keys(state.formulas).length
-    console.log(time, label , 'Sets', setCount, 'Numbers', numberCount)
+function showMilestone(state: State) {
+    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
+    const numbers = new Set<number>(Object.keys(state.formulas).map(Number))
+    const numberCount = numbers.size
+    console.log(time, 'Numbers', numberCount)
     postAppMessage({
       snapshot: {
         time,
-        label,
+        currentRound: state.progress?.round,
+        currentSetCount: state.sets.length,
+        currentSetProcessed: state.progress?.processed ?? 0,
+        processedSetCount: state.processedSetCount,
         numberCount,
-        setCounts: state.setCounts,
-        setCount: state.sets.length,
-        setCurrent: state.lastMilestone.stage.sets?.last ?? 1,
+        numbers,
       }})
 }
 
@@ -385,26 +391,26 @@ function clearMessages() {
     })
 }
 
-function showFormulas(state: State, label = getLabel(state)) {
-    const time = timestamp()
+function showFormulas(state: State) {
+    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
     const numberCount = Object.keys(state.formulas).length
     const formulaMap: FormulaTextMap = {}
     Object.entries(state.formulas).forEach(([key, {value, text}]) => formulaMap[value] = text)
 
-    console.log(time, label , 'Numbers', numberCount)
+    console.log(time , 'Numbers', numberCount)
     postAppMessage({
       snapshot: {
         time,
-        label,
         numberCount,
-        setCounts: state.setCounts,
-        setCount: state.sets.length,
+        currentRound: state.progress?.round,
+        currentSetCount: state.sets.length,
+        processedSetCount: state.processedSetCount,
         formulaMap,
       }})
 }
 
 // todo
-function showDebug(state: State, label: string) {
+function showDebug(state: State) {
     // const sortedFormuas = state.formulas
     //     .in_place_sort((a, b) => a.value - b.value)
     // console.log(timestamp(), label + '\n', sortedWholes.map(formula => formula.value + ' = ' + formula.text).join('\n '))
@@ -415,20 +421,12 @@ function showDebug(state: State, label: string) {
     //     .sort((a, b) => a - b))
 }
 
-function getLabel(state: State) {
-    const currentRound = state.lastMilestone.round + 1
-    const stage = state.lastMilestone.stage?.sets
-        ? 'sets ' + Math.round(state.lastMilestone.stage.sets.fraction * 100) + '%'
-        : ''
-    return `Round ${currentRound} ${stage}`
-}
-
 // Check progress, write a heartbeat log periodically.
 function heartbeat(state: State) {
     const now = new Date().getTime()
-    const startTimestamp = state.startTimestamp
-    const {heartbeatMs, yieldMs} = settings
+    const startTimestamp = state.startTimestamp ?? now
     const elapsed = now - startTimestamp
+    const {heartbeatMs, yieldMs} = settings
 
     if ( ! state.nextHeartbeat) {
         state.nextHeartbeat = 1
@@ -436,7 +434,7 @@ function heartbeat(state: State) {
     const nextHeartbeatTimestamp = startTimestamp + heartbeatMs * state.nextHeartbeat
     if (nextHeartbeatTimestamp < now) {
         showSnapshot(state)
-        state.nextHeartbeat = Math.ceil((elapsed) / heartbeatMs)
+        state.nextHeartbeat = Math.ceil(elapsed / heartbeatMs)
         // If we've done enough heartbeats, check if we need to wind up
         if (settings.minHeartbeats < state.nextHeartbeat) {
             if (state.nextHeartbeat * settings.heartbeatSeconds > settings.maxDurationSeconds) {
@@ -450,7 +448,7 @@ function heartbeat(state: State) {
     }
     const nextYieldTimestamp = startTimestamp + yieldMs * state.nextYield
     if (nextYieldTimestamp < now) {
-        state.nextYield = Math.ceil((elapsed) / yieldMs)
+        state.nextYield = Math.ceil(elapsed / yieldMs)
         throw 'yield'
     }
 }

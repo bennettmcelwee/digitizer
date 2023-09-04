@@ -10,7 +10,7 @@ const MessagePanel = ({ messages }: MessagePanelProps) => (
         {messages && messages.length ?
             messages.map((message, i) => <div key={i}>{message}</div>)
             :
-            <p>Working...</p>
+            null
         }
     </section>
 )
