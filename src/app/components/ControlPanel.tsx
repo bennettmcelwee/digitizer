@@ -8,7 +8,7 @@ function combineDescriptions(operators: Operator[]): SymbolDetails[] {
   const pairs = toPairs<Operator[]>(grouped)
   return pairs.map(([symbol, ops]) => ({
     symbol,
-    description: ops.map(_ => _.description).join('\n')
+    descriptions: ops.map(_ => _.description)
   }))
 }
 
@@ -41,14 +41,14 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
   const symbolDetails: SymbolDetails[] = [
     {
       symbol: '( )',
-      description: 'Group expressions, e.g. 2×(3+4) = 14',
+      descriptions: ['Group expressions, e.g. 2×(3+4) = 14'],
     },
     ...combineDescriptions(allOperators)
   ]
 
   return (
     <section className="p-4 border rounded-lg flex flex-col gap-2">
-        <h2>Digitizer</h2>
+        <h2 className="font-bold">Digitizer</h2>
         <div className="flex items-center gap-2">
           <label htmlFor="digits" className="inline-block w-30">
             Digits
@@ -78,31 +78,41 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           </label>
         </div>
 
-        <div className="flex items-center gap-2">
-          Symbols
-          <div className="flex flex-wrap w-max gap-2">
-            {symbolDetails.map(sym => {
-                const name = 'symbol' + sym.symbol
-                const isChecked = options.symbols.includes(sym.symbol)
-                return (
-                  <button key={sym.symbol}
-                    title={sym.description}
-                    className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'}`}
-                    onClick={() => setValue(name, !isChecked)}
-                    onFocus={() => setSymbolHelp(sym)}
-                    onBlur={() => setSymbolHelp(null)}
-                    disabled={isRunning}
-                    >
-                    <b>{sym.symbol}</b>
-                  </button>
-                )
-              })
-            }
+        <div className="flex gap-2">
+          <div className="pt-1.5">
+            Symbols
+          </div>
+          <div>
+            <div className="flex flex-wrap gap-2">
+              {symbolDetails.map(sym => {
+                  const name = 'symbol' + sym.symbol
+                  const isChecked = options.symbols.includes(sym.symbol)
+                  return (
+                    <button key={sym.symbol}
+                      title={sym.descriptions.join('\n')}
+                      className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'}`}
+                      onClick={() => setValue(name, !isChecked)}
+                      onFocus={() => setSymbolHelp(sym)}
+                      onBlur={() => setSymbolHelp(null)}
+                      disabled={isRunning}
+                      >
+                      <b>{sym.symbol}</b>
+                    </button>
+                  )
+                })
+              }
+            </div>
+            {symbolHelp && (
+              <div className="flex gap-2 items-start mt-1">
+                <b className="bg-gray-300 border rounded-lg px-2">{symbolHelp.symbol}</b>
+                <ul className="list-none">{symbolHelp.descriptions.map(desc => (
+                    <li key={desc}><i>{desc}</i></li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
-        {symbolHelp && (
-          <div><b>{symbolHelp.symbol}</b> <i>{symbolHelp.description}</i></div>
-        )}
 
         <label className="cursor-pointer">
           Pause after{' '}
