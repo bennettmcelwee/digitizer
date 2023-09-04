@@ -1,5 +1,5 @@
 import { groupBy, toPairs } from 'ramda'
-import React from 'react'
+import React, { useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
 import { Operator, allOperators } from '@/operators'
 
@@ -23,6 +23,8 @@ interface ControlPanelProps {
 }
 
 const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: ControlPanelProps) => {
+
+  const [symbolHelp, setSymbolHelp] = useState<SymbolDetails | null>()
 
   const onChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const target = event.target
@@ -87,6 +89,8 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                     title={sym.description}
                     className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'}`}
                     onClick={() => setValue(name, !isChecked)}
+                    onFocus={() => setSymbolHelp(sym)}
+                    onBlur={() => setSymbolHelp(null)}
                     disabled={isRunning}
                     >
                     <b>{sym.symbol}</b>
@@ -96,9 +100,12 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
             }
           </div>
         </div>
+        {symbolHelp && (
+          <div><b>{symbolHelp.symbol}</b> <i>{symbolHelp.description}</i></div>
+        )}
 
         <label className="cursor-pointer">
-          Stop after{' '}
+          Pause after{' '}
           <input className="w-20"
             name="maxDurationSeconds" type="number"
             value={options.maxDurationSeconds ?? 0} onChange={onChange}
