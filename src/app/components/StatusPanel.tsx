@@ -34,7 +34,7 @@ const StatusPanel = ({ runId, options, snapshot }: StatusPanelProps) => {
 
         {snapshot &&
             <>
-                <div>Elapsed time: {formatTimestamp(snapshot.time)}</div>
+                <div>Processing time: {formatTimestamp(snapshot.time)}</div>
                 {snapshot.currentRound ? (
                     <div>Processing round {snapshot.currentRound}{' '}
                         ({Math.round((snapshot.currentSetProcessed ?? 0) / snapshot.currentSetCount * 100)}%){' '}
@@ -72,7 +72,7 @@ const NumberPanel = ({numbers, limit}: {numbers: Set<number>, limit: number}) =>
         )
     }
     return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-x-2">
             {displayNumbers}
         </div>
     )

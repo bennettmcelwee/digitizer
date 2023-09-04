@@ -8,21 +8,23 @@ interface State {
     running: boolean,
     pause: boolean,
     // round
-    completedRounds: number,
     progress?: {
         round: number,
         processed: number,
         sets: FormulaSet[],
     } | null,
-    // overall
-    sets: FormulaSet[],
+    // work done
+    processingTimeMs: number;
+    completedRounds: number,
     processedSetCount: number,
-    formulas: FormulaMap,
     allSetIds: Set<string>,
+    // results
+    sets: FormulaSet[],
+    formulas: FormulaMap,
 
-    startTimestamp?: number,
-    nextHeartbeat?: number,
-    nextYield?: number,
+    currentStartTimestamp?: number | null,
+    nextHeartbeat?: number | null,
+    nextYield?: number | null,
 }
 
 let settings: Settings
@@ -39,48 +41,31 @@ let savedState: State
 onmessage = function(e: MessageEvent<WorkerMessage>) {
     switch (e.data.command) {
         case 'start': {
-            savedState = start(e.data.options)
+            clearMessages()
+            settings = buildSettings(e.data.options)
+            savedState = buildInitialState()
+            scheduleContinue(savedState)
             break;
         }
         case 'pause': {
-            pause(savedState)
+            savedState.pause = true
             break;
         }
         case 'resume': {
-            resume(savedState)
+            savedState.pause = false
+            showMessage('Resuming')
+            scheduleContinue(savedState)
             break;
         }
         case 'stop': {
-            stop(savedState)
+            savedState.running = false
+            showMessage('Stopping')
             break;
         }
     }
 }
 
 ////////////////////
-
-function start(options: Options) {
-    clearMessages()
-    settings = buildSettings(options)
-    const state = buildInitialState()
-    scheduleContinue(state)
-    return state
-}
-
-function pause(state: State) {
-    state.pause = true
-}
-
-function resume(state: State) {
-    state.pause = false
-    showMessage('Resuming')
-    scheduleContinue(state)
-}
-
-function stop(state: State) {
-    state.running = false
-    showMessage('Resuming')
-}
 
 function scheduleContinue(state: State) {
     setTimeout(doContinue, 0, state)
@@ -113,12 +98,14 @@ function doContinue(state: State) {
             scheduleContinue(state)
         }
         else if (ex === 'pause') {
+            stopProcessing(state)
             showMessage('Pausing')
             postAppMessage({
                 status: 'paused'
             })
         }
         else if (ex === 'stop') {
+            stopProcessing(state)
             showMessage('Finished (stopped)')
             showFormulas(state)
             postAppMessage({
@@ -158,19 +145,41 @@ function buildInitialState(): State {
     const state = {
         running: true,
         pause: false,
+        processingTimeMs: 0,
         completedRounds: 0,
-        sets,
         processedSetCount: 0,
         allSetIds: new Set(sets.map(setId)),
-        startTimestamp: new Date().getTime(),
-        formulas: {}
+        sets,
+        formulas: {},
     }
     return state
+}
+
+function getProcessingTime(state: State) {
+    return state.processingTimeMs +
+        (state.currentStartTimestamp ? (new Date().getTime() - state.currentStartTimestamp) : 0)
+
+}
+
+function startProcessing(state: State) {
+    if ( ! state.currentStartTimestamp) {
+        state.currentStartTimestamp = new Date().getTime()
+        state.nextHeartbeat = 1
+        state.nextYield = 1
+    }
+}
+
+function stopProcessing(state: State) {
+    state.processingTimeMs = getProcessingTime(state)
+    state.currentStartTimestamp = null
+    state.nextHeartbeat = null
+    state.nextYield = null
 }
 
 // return true if we need to keep going, false if we're finished
 function doRound(state: State) {
 
+    startProcessing(state)
     if (!state.progress) {
         state.progress = {
             round: state.completedRounds + 1,
@@ -347,7 +356,7 @@ function without<T>(array: T[], remove: T[]) {
 
 
 function showSnapshot(state: State) {
-    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
+    const time = getProcessingTime(state)
     const setCount = state.sets.length
     const numberCount = Object.keys(state.formulas).length
     console.log(time, 'Sets', setCount, 'Numbers', numberCount)
@@ -363,7 +372,7 @@ function showSnapshot(state: State) {
 }
 
 function showMilestone(state: State) {
-    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
+    const time = getProcessingTime(state)
     const numbers = new Set<number>(Object.keys(state.formulas).map(Number))
     const numberCount = numbers.size
     console.log(time, 'Numbers', numberCount)
@@ -392,7 +401,7 @@ function clearMessages() {
 }
 
 function showFormulas(state: State) {
-    const time = state.startTimestamp ? (new Date().getTime() - state.startTimestamp) : undefined
+    const time = getProcessingTime(state)
     const numberCount = Object.keys(state.formulas).length
     const formulaMap: FormulaTextMap = {}
     Object.entries(state.formulas).forEach(([key, {value, text}]) => formulaMap[value] = text)
@@ -422,9 +431,10 @@ function showDebug(state: State) {
 }
 
 // Check progress, write a heartbeat log periodically.
+// Can throw 'yield' or 'pause'
 function heartbeat(state: State) {
     const now = new Date().getTime()
-    const startTimestamp = state.startTimestamp ?? now
+    const startTimestamp = state.currentStartTimestamp ?? now
     const elapsed = now - startTimestamp
     const {heartbeatMs, yieldMs} = settings
 
@@ -435,11 +445,10 @@ function heartbeat(state: State) {
     if (nextHeartbeatTimestamp < now) {
         showSnapshot(state)
         state.nextHeartbeat = Math.ceil(elapsed / heartbeatMs)
-        // If we've done enough heartbeats, check if we need to wind up
+        // If we've done enough heartbeats, check if we need to pause
         if (settings.minHeartbeats < state.nextHeartbeat) {
             if (state.nextHeartbeat * settings.heartbeatSeconds > settings.maxDurationSeconds) {
-                // We should windup before next heartbeat
-                throw 'timeout'
+                throw 'pause'
             }
         }
     }
