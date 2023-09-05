@@ -34,8 +34,11 @@ body {
   }
   button {
     @apply text-center rounded-lg border-2 px-2 py-1.5
-      hover:bg-teal-800 text-gray-100 bg-green-700 border-green-700 dark:border-gray-200
+      text-gray-100 bg-green-700 border-green-700 dark:border-gray-200
       focus:relative;
+  }
+  button:not([disabled]) {
+    @apply hover:bg-teal-800
   }
   button.dimmed {
     @apply text-gray-100 bg-gray-400 border-gray-400

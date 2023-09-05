@@ -27,7 +27,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
     }, [displayNumbersRunId, snapshot?.numbers, snapshot?.runId])
 
     return (
-    <section className="p-4 border rounded-lg">
+    <section className="p-4 border rounded-lg mt-2">
         {options &&
             <p>Making numbers with digits{' '}
                 {options.digitString.split('').join(' ')}

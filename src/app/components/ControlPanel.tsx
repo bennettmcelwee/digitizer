@@ -36,7 +36,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
     setValue(name, value)
   }
 
-  const isRunning = (status === 'running')
+  const isRunning = (status !== 'idle')
 
   const symbolDetails: SymbolDetails[] = [
     {
@@ -104,7 +104,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
             </div>
             {symbolHelp && (
               <div className="flex gap-2 items-start mt-1">
-                <b className="bg-gray-300 border rounded-lg px-2">{symbolHelp.symbol}</b>
+                <b className="bg-gray-300 dark:bg-gray-600 rounded-lg px-2">{symbolHelp.symbol}</b>
                 <ul className="list-none">{symbolHelp.descriptions.map(desc => (
                     <li key={desc}><i>{desc}</i></li>
                   ))}
