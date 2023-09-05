@@ -113,7 +113,7 @@ class CommutativeOperator extends BinaryOperator {
 
 const concatenateValues = new NoncommutativeOperator({
     symbol: '|',
-    description: 'Concatenate two expressions, e.g. (2+3)|0 = 50',
+    description: 'Concatenate two expressions, e.g. (2+3) | 0 = 50',
     precedence: 0,
     applyValues(formulaA: Formula, formulaB: Formula) {
         // can slap any old values together as long as they don't both have points
@@ -204,7 +204,7 @@ const negate = new UnaryOperator({
 
 const concatenateDigits = new NoncommutativeOperator({
     symbol: '&',
-    description: 'Concatenate two numbers, e.g. 1&23 = 123',
+    description: 'Concatenate two numbers, e.g. 1 & 23 = 123',
     precedence: 7,
     applyValues(formulaA, formulaB) {
         // can prepend a digit to a digit or concatenated formula or point formula

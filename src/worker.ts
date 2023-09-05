@@ -5,6 +5,7 @@ import { AppMessage } from './app/page'
 type FormulaMap = Record<number, Formula>
 
 interface State {
+    runId: number,
     running: boolean,
     pause: boolean,
     // round
@@ -44,6 +45,8 @@ onmessage = function(e: MessageEvent<WorkerMessage>) {
             clearMessages()
             settings = buildSettings(e.data.options)
             savedState = buildInitialState()
+            showMessage('Starting')
+            showSnapshot(savedState)
             scheduleContinue(savedState)
             break;
         }
@@ -59,7 +62,9 @@ onmessage = function(e: MessageEvent<WorkerMessage>) {
         }
         case 'stop': {
             savedState.running = false
+            savedState.pause = false
             showMessage('Stopping')
+            scheduleContinue(savedState) // process the Stop command
             break;
         }
     }
@@ -87,7 +92,7 @@ function doContinue(state: State) {
             processing = doRound(state)
         }
         showMessage('Finished (exhausted)')
-        showFormulas(state)
+        showSnapshot(state, true)
         postAppMessage({
             status: 'idle'
         })
@@ -100,6 +105,7 @@ function doContinue(state: State) {
         else if (ex === 'pause') {
             stopProcessing(state)
             showMessage('Pausing')
+            showSnapshot(state, true)
             postAppMessage({
                 status: 'paused'
             })
@@ -107,14 +113,7 @@ function doContinue(state: State) {
         else if (ex === 'stop') {
             stopProcessing(state)
             showMessage('Finished (stopped)')
-            showFormulas(state)
-            postAppMessage({
-                status: 'idle'
-            })
-        }
-        else if (ex === 'timeout') {
-            showMessage('Finished (timed out)')
-            showFormulas(state)
+            showSnapshot(state, true)
             postAppMessage({
                 status: 'idle'
             })
@@ -143,6 +142,7 @@ function buildInitialState(): State {
     // add a single set consisting of all the digits
     const sets = [{ formulas: digits.map(digitToFormula) }]
     const state = {
+        runId: new Date().getTime(),
         running: true,
         pause: false,
         processingTimeMs: 0,
@@ -219,7 +219,7 @@ function doRound(state: State) {
         }
     }
 
-    showMilestone(state)
+    showSnapshot(state)
     return (state.sets.length > 0)
 }
 
@@ -355,36 +355,25 @@ function without<T>(array: T[], remove: T[]) {
 ///// Output
 
 
-function showSnapshot(state: State) {
-    const time = getProcessingTime(state)
-    const setCount = state.sets.length
-    const numberCount = Object.keys(state.formulas).length
-    console.log(time, 'Sets', setCount, 'Numbers', numberCount)
-    postAppMessage({
-      snapshot: {
-        time,
-        currentRound: state.progress?.round,
-        currentSetCount: state.sets.length,
-        currentSetProcessed: state.progress?.processed ?? 0,
-        processedSetCount: state.processedSetCount,
-        numberCount,
-      }})
-}
-
-function showMilestone(state: State) {
-    const time = getProcessingTime(state)
+function showSnapshot(state: State, showFormulas: boolean = false) {
+    const processingTimeMs = getProcessingTime(state)
     const numbers = new Set<number>(Object.keys(state.formulas).map(Number))
-    const numberCount = numbers.size
-    console.log(time, 'Numbers', numberCount)
+    let formulaMap: FormulaTextMap | undefined
+    if (showFormulas) {
+        formulaMap = {}
+        Object.values(state.formulas).forEach(({value, text}) => formulaMap![value] = text)
+    }
     postAppMessage({
       snapshot: {
-        time,
+        runId: state.runId,
+        processingTimeMs,
         currentRound: state.progress?.round,
         currentSetCount: state.sets.length,
         currentSetProcessed: state.progress?.processed ?? 0,
         processedSetCount: state.processedSetCount,
-        numberCount,
+        numberCount: numbers.size,
         numbers,
+        formulaMap,
       }})
 }
 
@@ -398,36 +387,6 @@ function clearMessages() {
     postAppMessage({
         clearMessages: true
     })
-}
-
-function showFormulas(state: State) {
-    const time = getProcessingTime(state)
-    const numberCount = Object.keys(state.formulas).length
-    const formulaMap: FormulaTextMap = {}
-    Object.entries(state.formulas).forEach(([key, {value, text}]) => formulaMap[value] = text)
-
-    console.log(time , 'Numbers', numberCount)
-    postAppMessage({
-      snapshot: {
-        time,
-        numberCount,
-        currentRound: state.progress?.round,
-        currentSetCount: state.sets.length,
-        processedSetCount: state.processedSetCount,
-        formulaMap,
-      }})
-}
-
-// todo
-function showDebug(state: State) {
-    // const sortedFormuas = state.formulas
-    //     .in_place_sort((a, b) => a.value - b.value)
-    // console.log(timestamp(), label + '\n', sortedWholes.map(formula => formula.value + ' = ' + formula.text).join('\n '))
-    // console.log('(objects)', sortedWholes)
-    // console.log('(all)', Object.keys(universe)
-    //     .map(key => universe[key])
-    //     .map(formula => formula.value)
-    //     .sort((a, b) => a - b))
 }
 
 // Check progress, write a heartbeat log periodically.

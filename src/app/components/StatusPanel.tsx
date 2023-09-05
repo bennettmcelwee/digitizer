@@ -1,26 +1,30 @@
-import { FormulaTextMap, Options, Snapshot } from '@/types';
+import { FormulaTextMap, Options, Snapshot, Status } from '@/types';
 import React, { useEffect, useState } from 'react';
 
 interface StatusPanelProps {
-    runId?: string,
     options: Options,
+    status: Status,
     snapshot?: Snapshot,
 }
-const StatusPanel = ({ runId, options, snapshot }: StatusPanelProps) => {
+const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
     const [displayNumbers, setDisplayNumbers] = useState<Set<number>>(new Set())
-    const [displayNumbersRunId, setDisplayNumbersRunId] = useState<string>()
+    const [displayNumbersRunId, setDisplayNumbersRunId] = useState<number>()
     useEffect(() => {
         if (snapshot?.numbers) {
-            if (runId !== displayNumbersRunId) {
+            if (snapshot.runId !== displayNumbersRunId) {
                 setDisplayNumbers(snapshot.numbers)
-                setDisplayNumbersRunId(runId)
+                setDisplayNumbersRunId(snapshot.runId)
             } else {
-                for (const n of snapshot.numbers.values()) {
-                    displayNumbers.add(n)
-                }
+                setDisplayNumbers(current => {
+                    const updated = new Set(current)
+                    for (const n of snapshot.numbers!.values()) {
+                        updated.add(n)
+                    }
+                    return updated
+                })
             }
         }
-    }, [displayNumbers, displayNumbersRunId, runId, snapshot?.numbers])
+    }, [displayNumbersRunId, snapshot?.numbers, snapshot?.runId])
 
     return (
     <section className="p-4 border rounded-lg">
@@ -34,13 +38,21 @@ const StatusPanel = ({ runId, options, snapshot }: StatusPanelProps) => {
 
         {snapshot &&
             <>
-                <div>Processing time: {formatTimestamp(snapshot.time)}</div>
-                {snapshot.currentRound ? (
-                    <div>Processing round {snapshot.currentRound}{' '}
-                        ({Math.round((snapshot.currentSetProcessed ?? 0) / snapshot.currentSetCount * 100)}%){' '}
-                        ({(snapshot.currentSetProcessed ?? 0).toLocaleString()} / {snapshot.currentSetCount.toLocaleString()} candidates)
-                    </div>
-                ) : (
+                <div>Processing time: {formatTimestamp(snapshot.processingTimeMs)}</div>
+                {status === 'running' && (
+                    snapshot.currentRound ? (
+                        <div>Processing round {snapshot.currentRound}{' '}
+                            ({Math.round((snapshot.currentSetProcessed ?? 0) / snapshot.currentSetCount * 100)}%){' '}
+                            ({(snapshot.currentSetProcessed ?? 0).toLocaleString()} / {snapshot.currentSetCount.toLocaleString()} candidates)
+                        </div>
+                    ) : (
+                        <div>Processing</div>
+                    )
+                )}
+                {status === 'paused' && (
+                    <div>Paused</div>
+                )}
+                {status === 'idle' && (
                     <div>Idle</div>
                 )}
                 <div>Checked {snapshot.processedSetCount.toLocaleString()} sets of numbers</div>
@@ -51,7 +63,16 @@ const StatusPanel = ({ runId, options, snapshot }: StatusPanelProps) => {
                         <h2>Results</h2>
                         <ul className="results">
                             {getFormulasList(snapshot.formulaMap, options.displayLimit).map(
-                                ({value, formula}) => (<li key={value}>{value}: {formula}</li>))
+                                ({value, formula}) => (
+                                    <li key={value}>
+                                        <span
+                                            className={formula ?
+                                                'text-green-600 dark:text-green-300' :
+                                                'text-red-600 dark:text-red-300'}>
+                                            {value}
+                                        </span>
+                                        : {formula}
+                                    </li>))
                             }
                         </ul>
                     </div>

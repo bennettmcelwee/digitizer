@@ -5,7 +5,8 @@ export type Status = 'idle' | 'running' | 'paused'
 export type FormulaTextMap = Record<number, string>
 
 export interface Snapshot {
-    time?: number,
+    runId: number,
+    processingTimeMs: number,
     processedSetCount: number,
     currentRound?: number,
     currentSetCount: number,
@@ -60,5 +61,5 @@ export interface FormulaSet {
 
 export interface SymbolDetails {
     symbol: string,
-    description: string,
+    descriptions: string[],
 }

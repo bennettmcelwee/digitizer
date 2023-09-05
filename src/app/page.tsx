@@ -34,7 +34,6 @@ export interface AppMessage {
 
 const App = () => {
 
-  const [runId, setRunId] = useState<string>()
   const [status, setStatus] = useState<Status>('idle')
   const [messages, setMessages] = useState<string[]>([])
   const [snapshot, setSnapshot] = useState<Snapshot>()
@@ -68,7 +67,6 @@ const App = () => {
   }, [])
 
   const start = () => {
-    setRunId(new Date().toString())
     postWorkerMessage({command: 'start', options})
   }
 
@@ -92,7 +90,6 @@ const App = () => {
       }
       if (e.data.message) {
         setMessages(messages => [...messages, e.data.message!])
-        console.log('Message: ', e.data.message)
       }
       if (e.data.clearMessages) {
         setMessages([])
@@ -115,8 +112,8 @@ const App = () => {
         resume={resume}
         stop={stop}
       />
-      <StatusPanel runId={runId} options={options} snapshot={snapshot} />
-      <MessagePanel messages={messages} />
+      <StatusPanel options={options} status={status} snapshot={snapshot} />
+      {/* <MessagePanel messages={messages} /> */}
     </main>
   )
 }

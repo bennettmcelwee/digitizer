@@ -127,7 +127,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
 
           <button onClick={start}
-            className={status !== 'running' ? '' : 'dimmed'}
+            className={status === 'idle' ? '' : 'dimmed'}
           >Start</button>
 
           <button onClick={pause}
