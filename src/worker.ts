@@ -128,6 +128,8 @@ function buildSettings(options: Options): Settings {
     const operators = allOperators.filter(operator => options.symbols.includes(operator.symbol))
     return {
         ...options,
+        // "preserve order" only makes sense if we have to use all digits
+        preserveOrder: options.preserveOrder && options.useAllDigits,
         allowParens: options.symbols?.includes('( )'),
         heartbeatMs: options.heartbeatSeconds * 1000,
         yieldMs: options.yieldSeconds * 1000,
@@ -231,35 +233,39 @@ function evolveSet(set: FormulaSet): FormulaSet[] {
 
     // For each formula in the set, apply each unary operator
     for (let i = 0; i < set.formulas.length; ++i) {
+        const before = set.formulas.slice(0, i)
         const formula = set.formulas[i]
-        const spliced = [...set.formulas]
-        spliced.splice(i, 1)
-        const splicedSet = {...set, formulas: spliced}
+        const after = set.formulas.slice(i+1)
 
         const sets = applyUnaryOperators(settings.unaryOperators)(formula)
-                .map(f => ({...splicedSet, formulas: [f, ...splicedSet.formulas]}))
-
+                .map(f => ({...set, formulas: [...before, f, ...after]}))
         newSets.push(...sets)
     }
 
     // For each pair of formulas in the set, apply each binary operator
     if (set.formulas.length >= 2) {
         for (let i = 0; i < set.formulas.length - 1; ++i) {
-            const iFormula = set.formulas[i]
-            for (let j = i+1; j < set.formulas.length; ++j) {
-                const jFormula = set.formulas[j]
-                const spliced = [...set.formulas]
-                // j > i so remove j then i
-                spliced.splice(j, 1)
-                spliced.splice(i, 1)
-                const splicedSet = {
-                    ...set,
-                    formulas: spliced
+            const prefix = set.formulas.slice(0, i)
+            const formulaA = set.formulas[i]
+            if (settings.preserveOrder) {
+                const formulaB = set.formulas[i+1]
+                const suffix = set.formulas.slice(i+2)
+
+                const sets = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
+                    .map(f => ({...set, formulas: [...prefix, f, ...suffix]}))
+                newSets.push(...sets)
+            }
+            else {
+                for (let j = i+1; j < set.formulas.length; ++j) {
+                    const between = set.formulas.slice(i+1, j)
+                    const formulaB = set.formulas[j]
+                    const after = set.formulas.slice(j+1)
+                    const suffix = [...between, ...after]
+
+                    const sets = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
+                        .map(f => ({...set, formulas: [...prefix, f, ...suffix]}))
+                    newSets.push(...sets)
                 }
-                newSets.push(
-                    ...applyBinaryOperators(settings.binaryOperators)(iFormula, jFormula)
-                        .map(f => ({...splicedSet, formulas: [f, ...splicedSet.formulas]}))
-                )
             }
         }
     }
@@ -281,11 +287,11 @@ function applyBinaryOperators(operators: BinaryOperator[]) {
     // return an array of the results of applying each operator to the formula(s)
     return function(formulaA: Formula, formulaB: Formula): Formula[] {
         const digits = [...formulaA.digits, ...formulaB.digits]
-        if (without(digits, settings.digits).length > 0) {
+        if (digits.length > settings.digits.length || without(digits, settings.digits).length > 0) {
             return []
         }
         return operators
-            .map(op => op.applyAll(formulaA, formulaB, false))
+            .map(op => op.applyAll(formulaA, formulaB, settings.preserveOrder))
             .flat()
             .filter(_ => _.value <= settings.valueLimit)
     }
