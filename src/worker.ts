@@ -302,7 +302,11 @@ function applyBinaryOperators(operators: BinaryOperator[]) {
 
 
 function setId(set: FormulaSet) {
-    return set.formulas.map(_ => _.text).sort().join(',')
+    const formulas = set.formulas.map(_ => _.text)
+    if ( ! settings.preserveOrder) {
+        formulas.sort()
+    }
+    return formulas.join(',')
 }
 
 ///// Universe
