@@ -12,6 +12,7 @@ import { WorkerMessage } from '@/worker'
 const DEFAULT_OPTIONS: Options = {
   digitString: (new Date().getFullYear()).toString(),
   useAllDigits: true,
+  preserveOrder: false,
   symbols: ['( )', '+', '-', '×', '÷', '&', '!', '^'],
   // Display
   displayLimit: 100,

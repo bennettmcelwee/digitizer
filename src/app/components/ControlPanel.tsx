@@ -2,6 +2,7 @@ import { groupBy, toPairs } from 'ramda'
 import React, { useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
 import { Operator, allOperators } from '@/operators'
+import ToggleButton from './ToggleButton'
 
 function combineDescriptions(operators: Operator[]): SymbolDetails[] {
   const grouped = groupBy<Operator, string>(_ => _.symbol)(operators) as Record<string, Operator[]>
@@ -46,36 +47,32 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
     ...combineDescriptions(allOperators)
   ]
 
+  const disabled = isRunning
   return (
     <section className="p-4 border rounded-lg flex flex-col gap-2">
         <h2 className="font-bold">Digitizer</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <label htmlFor="digits" className="inline-block w-30">
             Digits
           </label>
           <input id="digits"
             type="text"
-            className="w-24 tracking-widest mr-4"
+            className={`w-24 tracking-widest ${disabled ? 'opacity-50' : ''}`}
             name="digitString"
             value={options.digitString ?? ''} onChange={onChange}
-            disabled={isRunning}
+            disabled={disabled}
           />
 
-          <label htmlFor="useall" className="inline-block relative h-6 w-10 cursor-pointer">
-            <input className="peer sr-only"
-              name="useAllDigits" id="useall" type="checkbox" checked={options.useAllDigits ?? false} onChange={onChange}
-              disabled={isRunning}
+          <div className="flex flex-wrap gap-4">
+            <ToggleButton id="useall" name="useAllDigits"
+              label="Use all digits" value={options.useAllDigits}
+              disabled={disabled} onChange={onChange}
             />
-            <span
-              className="absolute inset-0 rounded-full bg-gray-300 transition peer-checked:bg-green-700"
-            ></span>
-            <span
-              className="absolute inset-y-0 start-0 m-1 h-4 w-4 rounded-full bg-white transition-all peer-checked:start-4"
-            ></span>
-          </label>
-          <label htmlFor="useall" className={`cursor-pointer ${options.useAllDigits ? '' : 'text-gray-500'}`}>
-            Use all digits
-          </label>
+            <ToggleButton id="order" name="preserveOrder"
+              label="Keep digits in order" value={options.preserveOrder}
+              disabled={disabled || !options.useAllDigits} onChange={onChange}
+            />
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -90,12 +87,12 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                   return (
                     <button key={sym.symbol}
                       title={sym.descriptions.join('\n')}
-                      className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'}`}
+                      className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'} ${disabled ? 'opacity-50' : ''}`}
                       onClick={() => setValue(name, !isChecked)}
                       onFocus={() => setSymbolHelp(sym)}
                       onBlur={() => setSymbolHelp(null)}
-                      disabled={isRunning}
-                      >
+                      disabled={disabled}
+                    >
                       <b>{sym.symbol}</b>
                     </button>
                   )
@@ -116,10 +113,10 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
         <label className="cursor-pointer">
           Pause after{' '}
-          <input className="w-20"
+          <input className={`w-20 ${disabled ? 'opacity-50' : ''}`}
             name="maxDurationSeconds" type="number"
             value={options.maxDurationSeconds ?? 0} onChange={onChange}
-            disabled={isRunning}
+            disabled={disabled}
           />
           {' '}seconds
         </label>

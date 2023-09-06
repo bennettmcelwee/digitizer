@@ -23,6 +23,7 @@ export interface Options {
 
     digitString: string,
     useAllDigits: boolean,
+    preserveOrder: boolean,
     symbols: string[],
     // Display
     displayLimit: number,
