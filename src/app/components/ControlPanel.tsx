@@ -49,19 +49,21 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
   const disabled = isRunning
   return (
-    <section className="p-4 border rounded-lg flex flex-col gap-2">
+    <section className="p-4 border rounded-lg flex flex-col gap-4">
         <h2 className="font-bold">Digitizer</h2>
-        <div className="flex items-center gap-4">
-          <label htmlFor="digits" className="inline-block w-30">
-            Digits
-          </label>
-          <input id="digits"
-            type="text"
-            className={`w-24 tracking-widest ${disabled ? 'opacity-50' : ''}`}
-            name="digitString"
-            value={options.digitString ?? ''} onChange={onChange}
-            disabled={disabled}
-          />
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="digits" className="inline-block w-30">
+              Digits
+            </label>
+            <input id="digits"
+              type="text"
+              className={`w-24 tracking-widest ${disabled ? 'opacity-50' : ''}`}
+              name="digitString"
+              value={options.digitString ?? ''} onChange={onChange}
+              disabled={disabled}
+            />
+          </div>
 
           <div className="flex flex-wrap gap-4">
             <ToggleButton id="useall" name="useAllDigits"

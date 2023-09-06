@@ -59,6 +59,13 @@ const App = () => {
         ...options,
         [name]: value
       }))
+      // special case: turning off useAllDigits will also turn off preserveOrder
+      if (name === 'useAllDigits' && !value) {
+        setOptions(options => ({
+          ...options,
+          preserveOrder: false
+        }))
+      }
     }
   }
 
