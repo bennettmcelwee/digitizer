@@ -50,7 +50,10 @@ export class UnaryOperator extends OperatorImpl {
         this.applyValue = applyValue
         this.applyFormula = applyFormula
     }
-    apply(formula: Formula): Formula | null {
+    applyAll(formula: Formula) {
+        return [this.apply(formula)].filter(_ => !!_) as Formula[]
+    }
+    private apply(formula: Formula): Formula | null {
         const value = this.applyValue(formula)
         return value === null ? null : {
             value,
@@ -58,9 +61,6 @@ export class UnaryOperator extends OperatorImpl {
             operator: this,
             digits: formula.digits
         }
-    }
-    applyAll(formula: Formula) {
-        return [this.apply(formula)].filter(_ => !!_) as Formula[]
     }
 }
 
@@ -72,16 +72,13 @@ interface BinaryOperatorType extends Operator {
 export abstract class BinaryOperator extends OperatorImpl {
     applyValues: (formulaA: Formula, formulaB: Formula) => number | null;
     applyFormulas: (formulaA: Formula, formulaB: Formula) => string;
-    abstract applyAll(formulaA: Formula, formulaB: Formula): Formula[];
     constructor({symbol, description, precedence, applyValues, applyFormulas}: BinaryOperatorType) {
         super({symbol, description, precedence})
         this.applyValues = applyValues
         this.applyFormulas = applyFormulas
     }
-}
-
-class NoncommutativeOperator extends BinaryOperator {
-    apply(formulaA: Formula, formulaB: Formula): Formula | null {
+    abstract applyAll(formulaA: Formula, formulaB: Formula, preserveOrder: boolean): Formula[]
+    protected apply(formulaA: Formula, formulaB: Formula): Formula | null {
         const value = this.applyValues(formulaA, formulaB)
         return value === null ? null : {
             value,
@@ -90,22 +87,19 @@ class NoncommutativeOperator extends BinaryOperator {
             digits: [...formulaA.digits, ...formulaB.digits]
         }
     }
-    applyAll(formulaA: Formula, formulaB: Formula): Formula[] {
-        const applied = [this.apply(formulaA, formulaB), this.apply(formulaB, formulaA)]
+}
+
+class NoncommutativeOperator extends BinaryOperator {
+    applyAll(formulaA: Formula, formulaB: Formula, preserveOrder: boolean): Formula[] {
+        const applied = preserveOrder ?
+            [this.apply(formulaA, formulaB)] :
+            [this.apply(formulaA, formulaB), this.apply(formulaB, formulaA)]
         return applied.filter(_ => !!_) as Formula[]
     }
 }
 
 class CommutativeOperator extends BinaryOperator {
-    apply(formulaA: Formula, formulaB: Formula) {
-        return {
-            value: this.applyValues(formulaA, formulaB),
-            text: this.applyFormulas(formulaA, formulaB),
-            operator: this,
-            digits: [...formulaA.digits, ...formulaB.digits]
-        }
-    }
-    applyAll(formulaA: Formula, formulaB: Formula) {
+    applyAll(formulaA: Formula, formulaB: Formula, preserveOrder: boolean): Formula[] {
         const applied = [this.apply(formulaA, formulaB)]
         return applied.filter(_ => !!_) as Formula[]
     }

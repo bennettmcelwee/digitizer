@@ -285,7 +285,7 @@ function applyBinaryOperators(operators: BinaryOperator[]) {
             return []
         }
         return operators
-            .map(op => op.applyAll(formulaA, formulaB))
+            .map(op => op.applyAll(formulaA, formulaB, false))
             .flat()
             .filter(_ => _.value <= settings.valueLimit)
     }
