@@ -1,6 +1,6 @@
 import { BinaryOperator, Operator, UnaryOperator } from "./operators";
 
-export type Status = 'idle' | 'running' | 'paused'
+export type Status = 'idle' | 'running' | 'paused' | 'done'
 
 export type FormulaTextMap = Record<number, string>
 

@@ -37,7 +37,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
     setValue(name, value)
   }
 
-  const isRunning = (status !== 'idle')
+  const isRunning = (status !== 'idle' && status !== 'done')
 
   const symbolDetails: SymbolDetails[] = [
     {
@@ -126,7 +126,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
 
           <button onClick={start}
-            className={status === 'idle' ? '' : 'dimmed'}
+            className={status === 'idle' || status === 'done' ? '' : 'dimmed'}
           >Start</button>
 
           <button onClick={pause}
@@ -138,7 +138,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           >Resume</button>
 
           <button onClick={stop}
-            className={status !== 'idle' ? '' : 'dimmed'}
+            className={status === 'running' || status === 'paused' ? '' : 'dimmed'}
             >Stop</button>
         </div>
     </section>

@@ -94,7 +94,7 @@ function doContinue(state: State) {
         showMessage('Finished (exhausted)')
         showSnapshot(state, true)
         postAppMessage({
-            status: 'idle'
+            status: 'done'
         })
     }
     catch (ex) {

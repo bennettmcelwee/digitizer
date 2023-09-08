@@ -55,10 +55,13 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                     )
                 )}
                 {status === 'paused' && (
-                    <div>Paused</div>
+                    <div className="text-orange-400 dark:text-orange-400">Paused</div>
                 )}
                 {status === 'idle' && (
                     <div>Idle</div>
+                )}
+                {status === 'done' && (
+                    <div className="text-green-600 dark:text-green-300">Finished</div>
                 )}
                 <div>Checked {snapshot.processedSetCount.toLocaleString()} sets of numbers</div>
                 <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> numbers</div>
@@ -66,6 +69,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 {snapshot.formulaMap &&
                     <FormulaPanel
                         options={options}
+                        status={status}
                         detailLimit={options.displayLimit}
                         formulaMap={snapshot.formulaMap}
                         extraLimit={extraLimit}
@@ -107,6 +111,7 @@ interface FormulaLine {
 
 interface FormulaPanelProps {
     options: Options,
+    status: Status,
     formulaMap: FormulaTextMap,
     detailLimit: number,
     extraLimit: number,
@@ -114,6 +119,7 @@ interface FormulaPanelProps {
 }
 const FormulaPanel = ({
     options,
+    status,
     formulaMap, // all formulas discovered
     detailLimit, // display every number up to this limit, even if no solution
     extraLimit, // display this many formulas after the detailLimit
@@ -158,7 +164,7 @@ const FormulaPanel = ({
                     {extraSolutionsCount > extraLimit ? (
                         <button onClick={() => setExtraLimit(l => l + 100)}>Show more</button>
                     ) : (
-                        <div>Those are all the solutions up to {options.valueLimit.toLocaleString()}.</div>
+                        <div>Those are all the solutions found so far.</div>
                     )}
                 </>
             )}
