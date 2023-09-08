@@ -50,7 +50,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
   const disabled = isRunning
   return (
     <section className="p-4 border rounded-lg flex flex-col gap-4">
-        <h2 className="font-bold">Digitizer</h2>
+        <h2 className="font-bold">Digitizer <i className="font-normal">by Bennett</i></h2>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
             <label htmlFor="digits" className="inline-block w-30">

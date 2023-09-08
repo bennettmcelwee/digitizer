@@ -64,8 +64,12 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> numbers</div>
                 <NumberPanel numbers={displayNumbers} limit={options.displayLimit}/>
                 {snapshot.formulaMap &&
-                    <FormulaPanel detailLimit={options.displayLimit} formulaMap={snapshot.formulaMap}
-                        extraLimit={extraLimit} setExtraLimit={setExtraLimit}
+                    <FormulaPanel
+                        options={options}
+                        detailLimit={options.displayLimit}
+                        formulaMap={snapshot.formulaMap}
+                        extraLimit={extraLimit}
+                        setExtraLimit={setExtraLimit}
                     />
                 }
             </>
@@ -101,12 +105,20 @@ interface FormulaLine {
     formula: string,
 }
 
+interface FormulaPanelProps {
+    options: Options,
+    formulaMap: FormulaTextMap,
+    detailLimit: number,
+    extraLimit: number,
+    setExtraLimit: (f: (l: number) => number) => void
+}
 const FormulaPanel = ({
+    options,
     formulaMap, // all formulas discovered
     detailLimit, // display every number up to this limit, even if no solution
     extraLimit, // display this many formulas after the detailLimit
     setExtraLimit, // display this many formulas after the detailLimit
-}: {formulaMap: FormulaTextMap, detailLimit: number, extraLimit: number, setExtraLimit: (f: (l: number) => number) => void}) => {
+}: FormulaPanelProps) => {
     // the panel has a "detail" section (containing all numbers) and an "extra"
     // section (containing just numbers with solutions)
     // "lines" are displayed lines, which may or may not include a solution
@@ -140,11 +152,13 @@ const FormulaPanel = ({
                     <h2>Solutions for numbers &gt; {detailLimit}:</h2>
                     {extraLimit > 0 && (
                         <>
-                            <FormulaList lines={extraLines}/>
+                            <FormulaList lines={extraLines} formulaMap={formulaMap}/>
                         </>
                     )}
-                    {extraSolutionsCount > extraLimit && (
+                    {extraSolutionsCount > extraLimit ? (
                         <button onClick={() => setExtraLimit(l => l + 100)}>Show more</button>
+                    ) : (
+                        <div>Those are all the solutions up to {options.valueLimit.toLocaleString()}.</div>
                     )}
                 </>
             )}
@@ -152,18 +166,23 @@ const FormulaPanel = ({
     )
 }
 
-const FormulaList = ({lines}: {lines: FormulaLine[]}) => (
+const FormulaList = ({lines, formulaMap}: {lines: FormulaLine[], formulaMap?: FormulaTextMap}) => (
     <ul className="formulas">
         {lines.map(
             ({value, formula}) => (
                 <li key={value}>
-                    <span
-                        className={formula ?
-                            'text-green-600 dark:text-green-300' :
-                            'text-red-600 dark:text-red-300'}>
-                        {value}
-                    </span>
-                    : {formula}
+                    {formula && formulaMap && !formulaMap[value - 1] && (
+                        <div className="h-0 relative -top-4 text-red-600 dark:text-red-300">...</div>
+                    )}
+                    <div>
+                        <span
+                            className={formula ?
+                                'text-green-600 dark:text-green-300' :
+                                'text-red-600 dark:text-red-300'}>
+                            {value}
+                        </span>
+                        : {formula}
+                    </div>
                 </li>
             )
         )}
