@@ -7,6 +7,7 @@ interface StatusPanelProps {
     snapshot?: Snapshot,
 }
 const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
+    const [extraLimit, setExtraLimit] = useState(0)
     const [displayNumbers, setDisplayNumbers] = useState<Set<number>>(new Set())
     const [displayNumbersRunId, setDisplayNumbersRunId] = useState<number>()
     useEffect(() => {
@@ -25,6 +26,10 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
             }
         }
     }, [displayNumbersRunId, snapshot?.numbers, snapshot?.runId])
+
+    useEffect(() => {
+        setExtraLimit(0)
+    }, [snapshot?.runId])
 
     return (
     <section className="p-4 border rounded-lg mt-2">
@@ -59,23 +64,9 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> numbers</div>
                 <NumberPanel numbers={displayNumbers} limit={options.displayLimit}/>
                 {snapshot.formulaMap &&
-                    <div>
-                        <h2>Results</h2>
-                        <ul className="results">
-                            {getFormulasList(snapshot.formulaMap, options.displayLimit).map(
-                                ({value, formula}) => (
-                                    <li key={value}>
-                                        <span
-                                            className={formula ?
-                                                'text-green-600 dark:text-green-300' :
-                                                'text-red-600 dark:text-red-300'}>
-                                            {value}
-                                        </span>
-                                        : {formula}
-                                    </li>))
-                            }
-                        </ul>
-                    </div>
+                    <FormulaPanel detailLimit={options.displayLimit} formulaMap={snapshot.formulaMap}
+                        extraLimit={extraLimit} setExtraLimit={setExtraLimit}
+                    />
                 }
             </>
         }
@@ -85,19 +76,99 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
 
 const NumberPanel = ({numbers, limit}: {numbers: Set<number>, limit: number}) => {
     const displayNumbers = []
+    let displaySolutionsCount = 0
     for (let i = 0; i <= limit; ++i) {
+        const hasSolution = numbers.has(i)
+        if (hasSolution) {
+            ++displaySolutionsCount
+        }
         displayNumbers.push(
-            <span key={i} className={numbers.has(i) ? 'text-green-600 dark:text-green-300' : 'text-gray-300 dark:text-gray-600'}>
+            <span key={i} className={hasSolution ? 'text-green-600 dark:text-green-300' : 'text-gray-300 dark:text-gray-600'}>
                 {i}
             </span>
         )
     }
+    const extraCount = numbers.size - displaySolutionsCount
     return (
         <div className="flex flex-wrap gap-x-2">
             {displayNumbers}
+            {extraCount > 0 && <span>and {extraCount} more</span>}
         </div>
     )
 }
+interface FormulaLine {
+    value: number,
+    formula: string,
+}
+
+const FormulaPanel = ({
+    formulaMap, // all formulas discovered
+    detailLimit, // display every number up to this limit, even if no solution
+    extraLimit, // display this many formulas after the detailLimit
+    setExtraLimit, // display this many formulas after the detailLimit
+}: {formulaMap: FormulaTextMap, detailLimit: number, extraLimit: number, setExtraLimit: (f: (l: number) => number) => void}) => {
+    // the panel has a "detail" section (containing all numbers) and an "extra"
+    // section (containing just numbers with solutions)
+    // "lines" are displayed lines, which may or may not include a solution
+    const detailLines: FormulaLine[] = []
+    let detailSolutionCount = 0
+    for (let i = 0; i <= detailLimit; ++i) {
+        const formula = formulaMap[i]
+        if (formula) {
+            ++detailSolutionCount
+        }
+        detailLines.push({value: i, formula: formula})
+    }
+    const allSolutions = Object.entries(formulaMap)
+    const allSolutionsCount = allSolutions.length
+    const extraSolutionsCount = allSolutionsCount - detailSolutionCount
+    let extraLines: FormulaLine[] = []
+    if (extraLimit > 0) {
+        extraLines = allSolutions
+            .map(([value, formula]) => ({value: Number(value), formula}))
+            .filter(({value, formula}) => value > detailLimit)
+            .sort((a, b) => a.value - b.value)
+            .slice(0, extraLimit)
+    }
+
+    return (
+        <div>
+            <h2>Results for numbers from 0-{detailLimit}:</h2>
+            <FormulaList lines={detailLines}/>
+            {extraSolutionsCount > 0 && (
+                <>
+                    <h2>Solutions for numbers &gt; {detailLimit}:</h2>
+                    {extraLimit > 0 && (
+                        <>
+                            <FormulaList lines={extraLines}/>
+                        </>
+                    )}
+                    {extraSolutionsCount > extraLimit && (
+                        <button onClick={() => setExtraLimit(l => l + 100)}>Show more</button>
+                    )}
+                </>
+            )}
+        </div>
+    )
+}
+
+const FormulaList = ({lines}: {lines: FormulaLine[]}) => (
+    <ul className="formulas">
+        {lines.map(
+            ({value, formula}) => (
+                <li key={value}>
+                    <span
+                        className={formula ?
+                            'text-green-600 dark:text-green-300' :
+                            'text-red-600 dark:text-red-300'}>
+                        {value}
+                    </span>
+                    : {formula}
+                </li>
+            )
+        )}
+    </ul>
+)
 
 function formatTimestamp(timestamp?: number) {
     return timestamp ?
@@ -107,6 +178,9 @@ function formatTimestamp(timestamp?: number) {
 
 function getFormulasList(formulaMap: FormulaTextMap, displayLimit: number) {
     const nums = []
+    for (let i = 0; i <= displayLimit; ++i) {
+        nums.push({value: i, formula: formulaMap[i]})
+    }
     for (let i = 0; i <= displayLimit; ++i) {
         nums.push({value: i, formula: formulaMap[i]})
     }
