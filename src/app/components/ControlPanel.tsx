@@ -27,7 +27,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
   const [symbolHelp, setSymbolHelp] = useState<SymbolDetails | null>()
 
-  const onChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+  const handleChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const target = event.target
     const value =
       target.type === "checkbox" ? target.checked
@@ -60,7 +60,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
               type="text"
               className={`w-24 tracking-widest ${disabled ? 'opacity-50' : ''}`}
               name="digitString"
-              value={options.digitString ?? ''} onChange={onChange}
+              value={options.digitString ?? ''} onChange={handleChange}
               disabled={disabled}
             />
           </div>
@@ -68,11 +68,11 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           <div className="flex flex-wrap gap-4">
             <ToggleButton id="useall" name="useAllDigits"
               label="Use all digits" value={options.useAllDigits}
-              disabled={disabled} onChange={onChange}
+              disabled={disabled} onChange={handleChange}
             />
             <ToggleButton id="order" name="preserveOrder"
               label="Keep digits in order" value={options.preserveOrder}
-              disabled={disabled || !options.useAllDigits} onChange={onChange}
+              disabled={disabled || !options.useAllDigits} onChange={handleChange}
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           Pause after{' '}
           <input className={`w-20 ${disabled ? 'opacity-50' : ''}`}
             name="maxDurationSeconds" type="number"
-            value={options.maxDurationSeconds ?? 0} onChange={onChange}
+            value={options.maxDurationSeconds ?? 0} onChange={handleChange}
             disabled={disabled}
           />
           {' '}seconds
