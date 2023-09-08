@@ -164,7 +164,12 @@ const FormulaPanel = ({
                     {extraSolutionsCount > extraLimit ? (
                         <button onClick={() => setExtraLimit(l => l + 100)}>Show more</button>
                     ) : (
-                        <div>Those are all the solutions found so far.</div>
+                        <div>Those are all the solutions
+                            {status === 'done' ?
+                                ` up to ${options.valueLimit.toLocaleString()}.` :
+                                ' found so far.'
+                            }
+                        </div>
                     )}
                 </>
             )}
