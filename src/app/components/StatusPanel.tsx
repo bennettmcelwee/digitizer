@@ -69,7 +69,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 )}
                 <div>Checked {snapshot.processedSetCount.toLocaleString()} combinations</div>
                 <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> solutions</div>
-                <NumberPanel numbers={displayNumbers} limit={options.displayLimit}/>
+                <NumberPanel numbers={displayNumbers} limit={options.displayLimit} status={status}/>
                 {snapshot.formulaMap &&
                     <FormulaPanel
                         options={options}
@@ -86,7 +86,9 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
     )
 }
 
-const NumberPanel = ({numbers, limit}: {numbers: Set<number>, limit: number}) => {
+const NumberPanel = ({numbers, limit, status}: {numbers: Set<number>, limit: number, status: Status}) => {
+    const solvedClass = 'text-green-600 dark:text-green-300'
+    const unsolvedClass = (status == 'done' ? 'text-red-600 dark:text-red-300' : 'text-gray-300 dark:text-gray-600')
     const displayNumbers = []
     let displaySolutionsCount = 0
     for (let i = 0; i <= limit; ++i) {
@@ -95,7 +97,7 @@ const NumberPanel = ({numbers, limit}: {numbers: Set<number>, limit: number}) =>
             ++displaySolutionsCount
         }
         displayNumbers.push(
-            <span key={i} className={hasSolution ? 'text-green-600 dark:text-green-300' : 'text-gray-300 dark:text-gray-600'}>
+            <span key={i} className={hasSolution ? solvedClass : unsolvedClass}>
                 {i}
             </span>
         )
