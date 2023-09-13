@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 import { Formula, FormulaSet, FormulaTextMap, Options, Settings } from './types'
 import { BinaryOperator, Operator, UnaryOperator, allOperators } from './operators'
 import { AppMessage } from './app/page'

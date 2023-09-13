@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 'use client'
 
 import React, { useEffect, useState } from 'react'

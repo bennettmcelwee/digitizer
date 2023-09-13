@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 import React from 'react';
 
 interface MessagePanelProps {

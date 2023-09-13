@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 import { groupBy, toPairs } from 'ramda'
 import React, { useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
@@ -114,7 +115,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         </div>
 
         <label className="cursor-pointer">
-          Pause after{' '}
+          Pause every{' '}
           <input className={`w-20 ${disabled ? 'opacity-50' : ''}`}
             name="maxDurationSeconds" type="number"
             value={options.maxDurationSeconds ?? 0} onChange={handleChange}

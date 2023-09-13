@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 import { BinaryOperator, Operator, UnaryOperator } from "./operators";
 
 export type Status = 'idle' | 'running' | 'paused' | 'done'

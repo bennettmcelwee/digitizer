@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 import { FormulaTextMap, Options, Snapshot, Status } from '@/types';
 import React, { useEffect, useState } from 'react';
 
@@ -35,8 +36,11 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
     <section className="p-4 border rounded-lg mt-2">
         {options &&
             <p>Making numbers with digits{' '}
-                {options.digitString.split('').join(' ')}
-                {' '}and symbols {options.symbols?.join(' ')}{' '}
+                {options.digitString.split('').join(' ')}{' '}
+                and symbols {options.symbols?.join(' ')}{' '}
+                {options.useAllDigits && (
+                    'using all digits ' + (options.preserveOrder ? ' in order ' : '')
+                )}
                 for {options.maxDurationSeconds} seconds
             </p>
         }
@@ -63,8 +67,8 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 {status === 'done' && (
                     <div className="text-green-600 dark:text-green-300">Finished</div>
                 )}
-                <div>Checked {snapshot.processedSetCount.toLocaleString()} sets of numbers</div>
-                <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> numbers</div>
+                <div>Checked {snapshot.processedSetCount.toLocaleString()} combinations</div>
+                <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> solutions</div>
                 <NumberPanel numbers={displayNumbers} limit={options.displayLimit}/>
                 {snapshot.formulaMap &&
                     <FormulaPanel

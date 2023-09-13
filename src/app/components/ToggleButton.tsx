@@ -1,3 +1,4 @@
+// Copyright 2023 Bennett McElwee. All rights reserved.
 interface ToggleButtonProps {
     disabled: boolean,
     id: string,

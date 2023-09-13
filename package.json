@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export": "next export",
+    "release": "next build && cp -r out digitizer && rm -f digitizer.zip && zip -r -q -m digitizer.zip digitizer",
     "start": "next start",
     "test": "jest",
     "lint": "next lint"
