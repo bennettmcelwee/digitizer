@@ -1,6 +1,6 @@
 // Copyright 2023 Bennett McElwee. All rights reserved.
 import { groupBy, toPairs } from 'ramda'
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
 import { Operator, allOperators } from '@/operators'
 import ToggleButton from './ToggleButton'
@@ -27,6 +27,7 @@ interface ControlPanelProps {
 const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: ControlPanelProps) => {
 
   const [symbolHelp, setSymbolHelp] = useState<SymbolDetails | null>()
+  const symbolHelpRef = useRef<HTMLDivElement>(null);
 
   const handleChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const target = event.target
@@ -36,6 +37,25 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
       : target.value
     const name = target.name
     setValue(name, value)
+  }
+
+  const handleFocus = (symbol: SymbolDetails) => {
+    setSymbolHelp(symbol)
+    const element = symbolHelpRef.current
+    if (element) {
+      element.style.height = 'auto'
+    }
+  }
+
+  const handleBlur = () => {
+    setSymbolHelp(null)
+    const element = symbolHelpRef.current
+    if (element) {
+      element.style.height = element.clientHeight + 'px'
+      setTimeout(() => {
+        element.style.height = '0'
+      }, 0)
+    }
   }
 
   const isRunning = (status !== 'idle' && status !== 'done')
@@ -92,8 +112,8 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                       title={sym.descriptions.join('\n')}
                       className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'} ${disabled ? 'opacity-50' : ''}`}
                       onClick={() => setValue(name, !isChecked)}
-                      onFocus={() => setSymbolHelp(sym)}
-                      onBlur={() => setSymbolHelp(null)}
+                      onFocus={() => handleFocus(sym)}
+                      onBlur={() => handleBlur()}
                       disabled={disabled}
                     >
                       <b>{sym.symbol}</b>
@@ -102,15 +122,17 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                 })
               }
             </div>
-            {symbolHelp && (
-              <div className="flex gap-2 items-start mt-1">
-                <b className="bg-gray-300 dark:bg-gray-600 rounded-lg px-2 whitespace-nowrap">{symbolHelp.symbol}</b>
-                <ul className="list-none">{symbolHelp.descriptions.map(desc => (
-                    <li key={desc}><i>{desc}</i></li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <div className="transition-all ease-in duration-500" ref={symbolHelpRef}>
+              {symbolHelp && (
+                <div className="flex gap-2 items-start mt-2">
+                  <b className="bg-gray-300 dark:bg-gray-600 rounded-lg px-2 whitespace-nowrap">{symbolHelp.symbol}</b>
+                  <ul className="list-none">{symbolHelp.descriptions.map(desc => (
+                      <li key={desc}><i>{desc}</i></li>
+                    ))}
+                  </ul>
+                  </div>
+              )}
+            </div>
           </div>
         </div>
 
