@@ -43,7 +43,9 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
     setSymbolHelp(symbol)
     const element = symbolHelpRef.current
     if (element) {
-      element.style.height = 'auto'
+      setTimeout(() => {
+        element.style.height = 'auto'
+      }, 0)
     }
   }
 
