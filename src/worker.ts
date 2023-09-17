@@ -1,5 +1,5 @@
 // Copyright 2023 Bennett McElwee. All rights reserved.
-import { Formula, FormulaSet, FormulaTextMap, Options, Settings } from './types'
+import { Formula, FormulaGroup, FormulaTextMap, Options, Settings } from './types'
 import { BinaryOperator, Operator, UnaryOperator, allOperators } from './operators'
 import { AppMessage } from './app/page'
 
@@ -13,15 +13,15 @@ interface State {
     progress?: {
         round: number,
         processed: number,
-        sets: FormulaSet[],
+        groups: FormulaGroup[],
     } | null,
     // work done
     processingTimeMs: number;
     completedRounds: number,
-    processedSetCount: number,
-    allSetIds: Set<string>,
+    processedGroupCount: number,
+    allGroupIds: Set<string>,
     // results
-    sets: FormulaSet[],
+    groups: FormulaGroup[],
     formulas: FormulaMap,
 
     currentStartTimestamp?: number | null,
@@ -142,17 +142,17 @@ function buildSettings(options: Options): Settings {
 
 function buildInitialState(): State {
     const digits = settings.digits ?? []
-    // add a single set consisting of all the digits
-    const sets = [{ formulas: digits.map(digitToFormula) }]
+    // add a single group consisting of all the digits
+    const groups = [{ formulas: digits.map(digitToFormula) }]
     const state = {
         runId: new Date().getTime(),
         running: true,
         pause: false,
         processingTimeMs: 0,
         completedRounds: 0,
-        processedSetCount: 0,
-        allSetIds: new Set(sets.map(setId)),
-        sets,
+        processedGroupCount: 0,
+        allGroupIds: new Set(groups.map(groupId)),
+        groups,
         formulas: {},
     }
     return state
@@ -186,25 +186,25 @@ function doRound(state: State) {
     if (!state.progress) {
         state.progress = {
             round: state.completedRounds + 1,
-            sets: [],
+            groups: [],
             processed: 0,
         }
     }
 
-    for (let i = state.progress.processed; i < state.sets.length; ) {
-        const iterationSets: FormulaSet[] = []
-        for (let j = 0; j < 100 && i < state.sets.length; ++j) {
-            iterationSets.push(...evolveSet(state.sets[i]))
+    for (let i = state.progress.processed; i < state.groups.length; ) {
+        const iterationGroups: FormulaGroup[] = []
+        for (let j = 0; j < 100 && i < state.groups.length; ++j) {
+            iterationGroups.push(...evolveGroup(state.groups[i]))
             ++i
         }
         // add them one by one if they haven't already been added
-        for (const set of iterationSets) {
-            const id = setId(set)
-            if ( ! state.allSetIds.has(id)) {
-                state.progress.sets.push(set)
-                state.allSetIds.add(id)
+        for (const group of iterationGroups) {
+            const id = groupId(group)
+            if ( ! state.allGroupIds.has(id)) {
+                state.progress.groups.push(group)
+                state.allGroupIds.add(id)
             }
-            state.processedSetCount++
+            state.processedGroupCount++
         }
         state.progress.processed = i
 
@@ -212,66 +212,65 @@ function doRound(state: State) {
     }
 
     // done calculations for this round
-    state.sets = state.progress.sets
+    state.groups = state.progress.groups
     state.completedRounds++
     state.progress = null
 
-    for (const set of state.sets) {
-        if (set.formulas.length == 1 || ! settings.useAllDigits) {
-            addFormulas(state.formulas, set.formulas)
+    for (const group of state.groups) {
+        if (group.formulas.length == 1 || ! settings.useAllDigits) {
+            addFormulas(state.formulas, group.formulas)
         }
     }
 
     showSnapshot(state)
-    return (state.sets.length > 0)
+    return (state.groups.length > 0)
 }
 
-// Return an array of sets, the results of applying each operator once
-// to each formula/pair in the set.
-function evolveSet(set: FormulaSet): FormulaSet[] {
+// Return an array of groups, the results of applying each operator once
+// to each formula/pair in the group.
+function evolveGroup(group: FormulaGroup): FormulaGroup[] {
 
-    const newSets: FormulaSet[] = []
+    const newGroups: FormulaGroup[] = []
 
-    // For each formula in the set, apply each unary operator
-    for (let i = 0; i < set.formulas.length; ++i) {
-        const before = set.formulas.slice(0, i)
-        const formula = set.formulas[i]
-        const after = set.formulas.slice(i+1)
+    // For each formula in the group, apply each unary operator
+    for (let i = 0; i < group.formulas.length; ++i) {
+        const before = group.formulas.slice(0, i)
+        const formula = group.formulas[i]
+        const after = group.formulas.slice(i+1)
 
-        const sets = applyUnaryOperators(settings.unaryOperators)(formula)
-                .map(f => ({...set, formulas: [...before, f, ...after]}))
-        newSets.push(...sets)
+        const groups = applyUnaryOperators(settings.unaryOperators)(formula)
+                .map(f => ({...group, formulas: [...before, f, ...after]}))
+        newGroups.push(...groups)
     }
 
-    // For each pair of formulas in the set, apply each binary operator
-    if (set.formulas.length >= 2) {
-        for (let i = 0; i < set.formulas.length - 1; ++i) {
-            const prefix = set.formulas.slice(0, i)
-            const formulaA = set.formulas[i]
+    // For each pair of formulas in the group, apply each binary operator
+    if (group.formulas.length >= 2) {
+        for (let i = 0; i < group.formulas.length - 1; ++i) {
+            const prefix = group.formulas.slice(0, i)
+            const formulaA = group.formulas[i]
             if (settings.preserveOrder) {
-                const formulaB = set.formulas[i+1]
-                const suffix = set.formulas.slice(i+2)
+                const formulaB = group.formulas[i+1]
+                const suffix = group.formulas.slice(i+2)
 
-                const sets = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
-                    .map(f => ({...set, formulas: [...prefix, f, ...suffix]}))
-                newSets.push(...sets)
+                const groups = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
+                    .map(f => ({...group, formulas: [...prefix, f, ...suffix]}))
+                newGroups.push(...groups)
             }
             else {
-                for (let j = i+1; j < set.formulas.length; ++j) {
-                    const between = set.formulas.slice(i+1, j)
-                    const formulaB = set.formulas[j]
-                    const after = set.formulas.slice(j+1)
+                for (let j = i+1; j < group.formulas.length; ++j) {
+                    const between = group.formulas.slice(i+1, j)
+                    const formulaB = group.formulas[j]
+                    const after = group.formulas.slice(j+1)
                     const suffix = [...between, ...after]
 
-                    const sets = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
-                        .map(f => ({...set, formulas: [...prefix, f, ...suffix]}))
-                    newSets.push(...sets)
+                    const groups = applyBinaryOperators(settings.binaryOperators)(formulaA, formulaB)
+                        .map(f => ({...group, formulas: [...prefix, f, ...suffix]}))
+                    newGroups.push(...groups)
                 }
             }
         }
     }
-
-    return newSets
+    return newGroups
 }
 
 function applyUnaryOperators(operators: UnaryOperator[]) {
@@ -302,8 +301,8 @@ function applyBinaryOperators(operators: BinaryOperator[]) {
 ///// Utilities
 
 
-function setId(set: FormulaSet) {
-    const formulas = set.formulas.map(_ => _.text)
+function groupId(group: FormulaGroup) {
+    const formulas = group.formulas.map(_ => _.text)
     if ( ! settings.preserveOrder) {
         formulas.sort()
     }
@@ -379,9 +378,9 @@ function showSnapshot(state: State, showFormulas: boolean = false) {
         runId: state.runId,
         processingTimeMs,
         currentRound: state.progress?.round,
-        currentSetCount: state.sets.length,
-        currentSetProcessed: state.progress?.processed ?? 0,
-        processedSetCount: state.processedSetCount,
+        currentGroupCount: state.groups.length,
+        currentGroupProcessed: state.progress?.processed ?? 0,
+        processedGroupCount: state.processedGroupCount,
         numberCount: numbers.size,
         numbers,
         formulaMap,
