@@ -9,13 +9,11 @@ interface State {
     runId: number,
     running: boolean,
     pause: boolean,
-    // at each level, contains the groups remaining to be processed
-    stack: FormulaGroup[][],
+    // the current stack of groups to be processed
+    stack: FormulaGroup[],
     // work done
     processingTimeMs: number;
-    processedCountTotal: number,
-    processedCounts: number[],
-    // results
+    processedCount: number,
     formulas: FormulaMap,
 
     currentStartTimestamp?: number | null,
@@ -84,7 +82,7 @@ function doContinue(state: State) {
         })
         let processing = true
         while (processing) {
-            processing = processNextGroup(state)
+            processing = processLatestGroup(state)
         }
         showMessage('Finished (complete)')
         showSnapshot(state, true)
@@ -144,10 +142,9 @@ function buildInitialState(): State {
         pause: false,
         processingTimeMs: 0,
         processedCountStack: [],
-        processedCountTotal: 0,
-        processedCounts: [],
+        processedCount: 0,
         stack: [
-            [{ formulas: digits.map(digitToFormula) }]
+            { formulas: digits.map(digitToFormula) }
         ],
         formulas: {},
     }
@@ -176,11 +173,11 @@ function stopProcessing(state: State) {
 }
 
 /**
- * Process the next group, which will be the first group at the top of the stack (depth-first)
+ * Process the group at the top of the stack
  * @param state
  * @returns true if we need to keep going, false if we're finished
  */
-function processNextGroup(state: State) {
+function processLatestGroup(state: State) {
 
     const GROUPS_PER_HEARTBEAT = 100
 
@@ -190,33 +187,25 @@ function processNextGroup(state: State) {
 
     const { stack } = state
 
-    const depth = stack.length
-    const level = stack[depth - 1]
-    const group = level[0]
+    // pull the group off the end
+    const group = stack.pop()
+    if (!group) {
+        // finished!
+        return false
+    }
 
     // Check if this group is a solution
     if (group.formulas.length === 1 || !settings.useAllDigits) {
         addFormulas(state.formulas, group.formulas)
     }
-    // Add another level if possible, otherwise we've reached a leaf, so delete this
-    const evolved = evolveGroup(group)
-    const addLevel = evolved.length > 0
-    if (addLevel) {
-        stack.push(evolved)
-    }
-    // we've done all we can with this group; delete it
-    level.shift()
-    if (level.length === 0) {
-        stack.pop()
-    }
+    stack.push(...evolveGroup(group))
 
-    state.processedCountTotal++
-    state.processedCounts[depth - 1] = (state.processedCounts[depth - 1] ?? 0) + 1
-    if (state.processedCountTotal % GROUPS_PER_HEARTBEAT === 0) {
+    state.processedCount++
+    if (state.processedCount % GROUPS_PER_HEARTBEAT === 0) {
         heartbeat(state)
     }
 
-    showSnapshot(state)
+    //showSnapshot(state)
 
     return stack.length > 0
 }
@@ -372,8 +361,8 @@ function showSnapshot(state: State, showFormulas: boolean = false) {
       snapshot: {
         runId: state.runId,
         processingTimeMs,
-        processedCountTotal: state.processedCountTotal,
-        processedCounts: state.processedCounts,
+        stackCount: state.stack.length,
+        processedCount: state.processedCount,
         numberCount: numbers.size,
         numbers,
         formulaMap,
