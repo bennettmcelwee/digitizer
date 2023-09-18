@@ -49,14 +49,8 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
             <>
                 <div>Processing time: {formatTimestamp(snapshot.processingTimeMs)}</div>
                 {status === 'running' && (
-                    snapshot.currentRound ? (
-                        <div>Processing round {snapshot.currentRound}{' '}
-                            ({Math.round((snapshot.currentGroupProcessed ?? 0) / snapshot.currentGroupCount * 100)}%){' '}
-                            ({(snapshot.currentGroupProcessed ?? 0).toLocaleString()} / {snapshot.currentGroupCount.toLocaleString()} candidates)
-                        </div>
-                    ) : (
-                        <div>Processing</div>
-                    )
+                    <div>Evaluated {snapshot.processedCounts.join(' + ') ?? 0} candidates
+                    </div>
                 )}
                 {status === 'paused' && (
                     <div className="text-orange-400 dark:text-orange-400">Paused</div>
@@ -67,7 +61,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 {status === 'done' && (
                     <div className="text-green-600 dark:text-green-300">Finished</div>
                 )}
-                <div>Checked {snapshot.processedGroupCount.toLocaleString()} combinations</div>
+                <div>Checked {snapshot.processedCountTotal.toLocaleString()} combinations</div>
                 <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> solutions</div>
                 <NumberPanel numbers={displayNumbers} limit={options.displayLimit} status={status}/>
                 {snapshot.formulaMap &&

@@ -8,10 +8,8 @@ export type FormulaTextMap = Record<number, string>
 export interface Snapshot {
     runId: number,
     processingTimeMs: number,
-    processedGroupCount: number,
-    currentRound?: number,
-    currentGroupCount: number,
-    currentGroupProcessed?: number,
+    processedCountTotal: number,
+    processedCounts: number[],
     numberCount: number,
     numbers?: Set<number>,
     formulaMap?: FormulaTextMap,

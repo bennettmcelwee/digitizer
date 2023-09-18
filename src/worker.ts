@@ -9,19 +9,13 @@ interface State {
     runId: number,
     running: boolean,
     pause: boolean,
-    // round
-    progress?: {
-        round: number,
-        processed: number,
-        groups: FormulaGroup[],
-    } | null,
+    // at each level, contains the groups remaining to be processed
+    stack: FormulaGroup[][],
     // work done
     processingTimeMs: number;
-    completedRounds: number,
-    processedGroupCount: number,
-    allGroupIds: Set<string>,
+    processedCountTotal: number,
+    processedCounts: number[],
     // results
-    groups: FormulaGroup[],
     formulas: FormulaMap,
 
     currentStartTimestamp?: number | null,
@@ -90,9 +84,9 @@ function doContinue(state: State) {
         })
         let processing = true
         while (processing) {
-            processing = doRound(state)
+            processing = processNextGroup(state)
         }
-        showMessage('Finished (exhausted)')
+        showMessage('Finished (complete)')
         showSnapshot(state, true)
         postAppMessage({
             status: 'done'
@@ -149,10 +143,12 @@ function buildInitialState(): State {
         running: true,
         pause: false,
         processingTimeMs: 0,
-        completedRounds: 0,
-        processedGroupCount: 0,
-        allGroupIds: new Set(groups.map(groupId)),
-        groups,
+        processedCountStack: [],
+        processedCountTotal: 0,
+        processedCounts: [],
+        stack: [
+            [{ formulas: digits.map(digitToFormula) }]
+        ],
         formulas: {},
     }
     return state
@@ -179,51 +175,50 @@ function stopProcessing(state: State) {
     state.nextYield = null
 }
 
-// return true if we need to keep going, false if we're finished
-function doRound(state: State) {
+/**
+ * Process the next group, which will be the first group at the top of the stack (depth-first)
+ * @param state
+ * @returns true if we need to keep going, false if we're finished
+ */
+function processNextGroup(state: State) {
+
+    const GROUPS_PER_HEARTBEAT = 100
 
     startProcessing(state)
-    if (!state.progress) {
-        state.progress = {
-            round: state.completedRounds + 1,
-            groups: [],
-            processed: 0,
-        }
+
+    if (!state.stack) throw 'argh'
+
+    const { stack } = state
+
+    const depth = stack.length
+    const level = stack[depth - 1]
+    const group = level[0]
+
+    // Check if this group is a solution
+    if (group.formulas.length === 1 || !settings.useAllDigits) {
+        addFormulas(state.formulas, group.formulas)
+    }
+    // Add another level if possible, otherwise we've reached a leaf, so delete this
+    const evolved = evolveGroup(group)
+    const addLevel = evolved.length > 0
+    if (addLevel) {
+        stack.push(evolved)
+    }
+    // we've done all we can with this group; delete it
+    level.shift()
+    if (level.length === 0) {
+        stack.pop()
     }
 
-    for (let i = state.progress.processed; i < state.groups.length; ) {
-        const iterationGroups: FormulaGroup[] = []
-        for (let j = 0; j < 100 && i < state.groups.length; ++j) {
-            iterationGroups.push(...evolveGroup(state.groups[i]))
-            ++i
-        }
-        // add them one by one if they haven't already been added
-        for (const group of iterationGroups) {
-            const id = groupId(group)
-            if ( ! state.allGroupIds.has(id)) {
-                state.progress.groups.push(group)
-                state.allGroupIds.add(id)
-            }
-            state.processedGroupCount++
-        }
-        state.progress.processed = i
-
+    state.processedCountTotal++
+    state.processedCounts[depth - 1] = (state.processedCounts[depth - 1] ?? 0) + 1
+    if (state.processedCountTotal % GROUPS_PER_HEARTBEAT === 0) {
         heartbeat(state)
     }
 
-    // done calculations for this round
-    state.groups = state.progress.groups
-    state.completedRounds++
-    state.progress = null
-
-    for (const group of state.groups) {
-        if (group.formulas.length == 1 || ! settings.useAllDigits) {
-            addFormulas(state.formulas, group.formulas)
-        }
-    }
-
     showSnapshot(state)
-    return (state.groups.length > 0)
+
+    return stack.length > 0
 }
 
 // Return an array of groups, the results of applying each operator once
@@ -377,10 +372,8 @@ function showSnapshot(state: State, showFormulas: boolean = false) {
       snapshot: {
         runId: state.runId,
         processingTimeMs,
-        currentRound: state.progress?.round,
-        currentGroupCount: state.groups.length,
-        currentGroupProcessed: state.progress?.processed ?? 0,
-        processedGroupCount: state.processedGroupCount,
+        processedCountTotal: state.processedCountTotal,
+        processedCounts: state.processedCounts,
         numberCount: numbers.size,
         numbers,
         formulaMap,
