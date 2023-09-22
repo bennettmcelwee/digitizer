@@ -23,19 +23,19 @@ class QueueImpl implements Queue {
     queue: FormulaGroup[]
     first: number
     strategy: QueueStrategy
-    length() { return this.queue.length }
+    length() { return this.queue.length - this.first }
     enqueue(group: FormulaGroup) { this.queue.push(group) }
     dequeue() {
         switch (this.strategy) {
             case 'depthfirst': return this.queue.pop()!
-            case 'breadthfirst': return this.queue.shift()!
-            // case 'breadthfirst': {
-            //     if (this.first < this.queue.length) {
-            //         return this.queue[this.first++]
-            //     } else {
-            //         return undefined
-            //     }
-            // }
+            // case 'breadthfirst': return this.queue.shift()!
+            case 'breadthfirst': {
+                if (this.first < this.queue.length) {
+                    return this.queue[this.first++]
+                } else {
+                    return undefined
+                }
+            }
         }
     }
 }
