@@ -171,7 +171,15 @@ const squareRoot = new UnaryOperator({
     symbol: '√',
     description: 'Take the square root of an expression, e.g. √(21+4) = 5',
     precedence: 4,
-    applyValue(formulaA) { return formulaA.value >= 0 ? quantise(Math.sqrt(formulaA.value)) : null },
+    applyValue(formulaA) {
+        // Only allow iterated root (√√x) if √x is an integer. This prevents infinite repeats
+        const isIterated = formulaA.operator?.symbol === '√'
+        if (formulaA.value > 0 && formulaA.value !== 1 && (!isIterated || formulaA.value == Math.round(formulaA.value))) {
+            return quantise(Math.sqrt(formulaA.value))
+        } else {
+            return null
+        }
+    },
     applyFormula(formulaA) { return '√' + bindLoose(this, formulaA) }
 })
 
