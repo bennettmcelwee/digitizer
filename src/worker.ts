@@ -5,12 +5,47 @@ import { AppMessage } from './app/page'
 
 type FormulaMap = Record<number, Formula>
 
+type QueueStrategy = 'depthfirst' | 'breadthfirst'
+
+interface Queue {
+    length: () => number,
+    strategy: QueueStrategy,
+    enqueue: (group: FormulaGroup) => void,
+    dequeue: () => FormulaGroup | undefined,
+}
+
+class QueueImpl implements Queue {
+    constructor(groups: FormulaGroup[], strategy: QueueStrategy) {
+        this.queue = groups
+        this.first = 0
+        this.strategy = strategy
+    }
+    queue: FormulaGroup[]
+    first: number
+    strategy: QueueStrategy
+    length() { return this.queue.length }
+    enqueue(group: FormulaGroup) { this.queue.push(group) }
+    dequeue() {
+        switch (this.strategy) {
+            case 'depthfirst': return this.queue.pop()!
+            case 'breadthfirst': return this.queue.shift()!
+            // case 'breadthfirst': {
+            //     if (this.first < this.queue.length) {
+            //         return this.queue[this.first++]
+            //     } else {
+            //         return undefined
+            //     }
+            // }
+        }
+    }
+}
+
 interface State {
     runId: number,
     running: boolean,
     pause: boolean,
     // current
-    queue: FormulaGroup[], // the current queue of groups to be processed
+    queue: Queue, // the current queue of groups to be processed
     queuedCache: Set<string>, // cache of ids of processed groups
     // progress
     processingTimeMs: number,
@@ -147,9 +182,11 @@ function buildInitialState(): State {
         processedTotal: 0,
         cacheHitTotal: 0,
         queuedCache: new Set<string>(),
-        queue: [
-            { formulas: digits.map(digitToFormula) }
-        ],
+        queue: new QueueImpl(
+            [{ formulas: digits.map(digitToFormula) }],
+            'breadthfirst'
+            // 'depthfirst'
+        ),
         solutions: {},
     }
     return state
@@ -176,15 +213,6 @@ function stopProcessing(state: State) {
     state.nextYield = null
 }
 
-type Strategy = 'depthfirst' | 'breadthfirst'
-
-function takeNextGroup(state: State, strategy: Strategy) {
-    switch (strategy) {
-        case 'depthfirst': return state.queue.pop()!
-        case 'breadthfirst': return state.queue.shift()!
-    }
-}
-
 /**
  * Process a group from the queue
  * @param state
@@ -196,12 +224,12 @@ function processNextGroup(state: State) {
 
     startProcessing(state)
 
-    if (!state.queue) throw 'argh'
-
     const { queue } = state
 
-    const strategy: Strategy = 'depthfirst'
-    const group = takeNextGroup(state, strategy)
+    const group = queue?.dequeue()
+    if (!group) {
+        return false
+    }
 
     // Check if this group is a solution
     if (group.formulas.length === 1 || !settings.useAllDigits) {
@@ -214,7 +242,7 @@ function processNextGroup(state: State) {
         if (state.queuedCache.has(id)) {
             state.cacheHitTotal++
         } else {
-            queue.push(evolvedGroup)
+            queue.enqueue(evolvedGroup)
             state.queuedTotal++
             if (state.queuedCache.size >= 10000000) {
                 // The cache is too full and will exhaust memory soon (or the maximum allowed
@@ -236,7 +264,7 @@ function processNextGroup(state: State) {
 
     //showSnapshot(state)
 
-    return queue.length > 0
+    return queue.length() > 0
 }
 
 // Return an array of groups, the results of applying each operator once
@@ -390,7 +418,7 @@ function showSnapshot(state: State, showFormulas: boolean = false) {
       snapshot: {
         runId: state.runId,
         processingTimeMs,
-        queueSize: state.queue.length,
+        queueSize: state.queue.length(),
         queuedTotal: state.queuedTotal,
         cacheSize: state.queuedCache.size,
         processedTotal: state.processedTotal,
