@@ -126,7 +126,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
             </div>
             <div className="transition-all ease-in duration-500" ref={symbolHelpRef}>
               {symbolHelp && (
-                <div className="flex gap-2 items-start mt-2">
+                <div className="flex gap-2 items-start pt-2">
                   <b className="bg-gray-300 dark:bg-gray-600 rounded-lg px-2 whitespace-nowrap">{symbolHelp.symbol}</b>
                   <ul className="list-none">{symbolHelp.descriptions.map(desc => (
                       <li key={desc}><i>{desc}</i></li>
