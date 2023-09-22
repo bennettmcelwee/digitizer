@@ -9,12 +9,15 @@ interface State {
     runId: number,
     running: boolean,
     pause: boolean,
-    // the current stack of groups to be processed
-    stack: FormulaGroup[],
-    // work done
-    processingTimeMs: number;
-    processedCount: number,
-    formulas: FormulaMap,
+    // current
+    queue: FormulaGroup[], // the current queue of groups to be processed
+    queuedCache: Set<string>, // cache of ids of processed groups
+    // progress
+    processingTimeMs: number,
+    queuedTotal: number, // number of groups added to the queue
+    cacheHitTotal: number, // number of groups not added to the queue because they were in the cache
+    processedTotal: number, // number of groups processed and removed from the queue
+    solutions: FormulaMap,
 
     currentStartTimestamp?: number | null,
     nextHeartbeat?: number | null,
@@ -82,7 +85,7 @@ function doContinue(state: State) {
         })
         let processing = true
         while (processing) {
-            processing = processLatestGroup(state)
+            processing = processNextGroup(state)
         }
         showMessage('Finished (complete)')
         showSnapshot(state, true)
@@ -135,18 +138,19 @@ function buildSettings(options: Options): Settings {
 function buildInitialState(): State {
     const digits = settings.digits ?? []
     // add a single group consisting of all the digits
-    const groups = [{ formulas: digits.map(digitToFormula) }]
-    const state = {
+    const state: State = {
         runId: new Date().getTime(),
         running: true,
         pause: false,
         processingTimeMs: 0,
-        processedCountStack: [],
-        processedCount: 0,
-        stack: [
+        queuedTotal: 1,
+        processedTotal: 0,
+        cacheHitTotal: 0,
+        queuedCache: new Set<string>(),
+        queue: [
             { formulas: digits.map(digitToFormula) }
         ],
-        formulas: {},
+        solutions: {},
     }
     return state
 }
@@ -172,42 +176,67 @@ function stopProcessing(state: State) {
     state.nextYield = null
 }
 
+type Strategy = 'depthfirst' | 'breadthfirst'
+
+function takeNextGroup(state: State, strategy: Strategy) {
+    switch (strategy) {
+        case 'depthfirst': return state.queue.pop()!
+        case 'breadthfirst': return state.queue.shift()!
+    }
+}
+
 /**
- * Process the group at the top of the stack
+ * Process a group from the queue
  * @param state
  * @returns true if we need to keep going, false if we're finished
  */
-function processLatestGroup(state: State) {
+function processNextGroup(state: State) {
 
-    const GROUPS_PER_HEARTBEAT = 100
+    const GROUPS_PER_HEARTBEAT = 10000
 
     startProcessing(state)
 
-    if (!state.stack) throw 'argh'
+    if (!state.queue) throw 'argh'
 
-    const { stack } = state
+    const { queue } = state
 
-    // pull the group off the end
-    const group = stack.pop()
-    if (!group) {
-        // finished!
-        return false
-    }
+    const strategy: Strategy = 'depthfirst'
+    const group = takeNextGroup(state, strategy)
 
     // Check if this group is a solution
     if (group.formulas.length === 1 || !settings.useAllDigits) {
-        addFormulas(state.formulas, group.formulas)
+        addSolutions(state.solutions, group.formulas)
     }
-    stack.push(...evolveGroup(group))
+    const evolvedGroups = evolveGroup(group)
 
-    state.processedCount++
-    if (state.processedCount % GROUPS_PER_HEARTBEAT === 0) {
+    for (const evolvedGroup of evolvedGroups) {
+        const id = groupId(evolvedGroup)
+        if (state.queuedCache.has(id)) {
+            state.cacheHitTotal++
+        } else {
+            queue.push(evolvedGroup)
+            state.queuedTotal++
+            if (state.queuedCache.size >= 10000000) {
+                // The cache is too full and will exhaust memory soon (or the maximum allowed
+                // Set size which is 2^24).
+                // No good removing elements from the cache, because they still seem to count
+                // against the Set size limit.
+                // No good copying values into a new Set, because that takes too long (~3000ms).
+                // Simplest thing is just throw away the cache and start again.
+                state.queuedCache = new Set()
+            }
+            state.queuedCache.add(id)
+        }
+    }
+
+    state.processedTotal++
+    if (state.processedTotal % GROUPS_PER_HEARTBEAT === 0) {
         heartbeat(state)
     }
 
     //showSnapshot(state)
 
-    return stack.length > 0
+    return queue.length > 0
 }
 
 // Return an array of groups, the results of applying each operator once
@@ -297,7 +326,7 @@ function groupId(group: FormulaGroup) {
 
 const LEADING_ZERO = /(?<!\d)0\d/
 
-function addFormulas(pool: FormulaMap, formulas: Formula[]) {
+function addSolutions(pool: FormulaMap, formulas: Formula[]) {
     // add formulas that qualify (whole numbers within the limit)
     formulas.forEach(formula => {
         if (formula
@@ -351,20 +380,23 @@ function without<T>(array: T[], remove: T[]) {
 
 function showSnapshot(state: State, showFormulas: boolean = false) {
     const processingTimeMs = getProcessingTime(state)
-    const numbers = new Set<number>(Object.keys(state.formulas).map(Number))
+    const numbers = new Set<number>(Object.keys(state.solutions).map(Number))
     let formulaMap: FormulaTextMap | undefined
     if (showFormulas) {
         formulaMap = {}
-        Object.values(state.formulas).forEach(({value, text}) => formulaMap![value] = text)
+        Object.values(state.solutions).forEach(({value, text}) => formulaMap![value] = text)
     }
     postAppMessage({
       snapshot: {
         runId: state.runId,
         processingTimeMs,
-        stackCount: state.stack.length,
-        processedCount: state.processedCount,
-        numberCount: numbers.size,
-        numbers,
+        queueSize: state.queue.length,
+        queuedTotal: state.queuedTotal,
+        cacheSize: state.queuedCache.size,
+        processedTotal: state.processedTotal,
+        cacheHitTotal: state.cacheHitTotal,
+        solutionCount: numbers.size,
+        solutions: numbers,
         formulaMap,
       }})
 }

@@ -7,11 +7,16 @@ export type FormulaTextMap = Record<number, string>
 
 export interface Snapshot {
     runId: number,
+    // current
+    queueSize: number,
+    cacheSize: number,
+    // progress
     processingTimeMs: number,
-    stackCount: number,
-    processedCount: number,
-    numberCount: number,
-    numbers?: Set<number>,
+    queuedTotal: number,
+    cacheHitTotal: number,
+    processedTotal: number,
+    solutionCount: number,
+    solutions?: Set<number>,
     formulaMap?: FormulaTextMap,
 }
 

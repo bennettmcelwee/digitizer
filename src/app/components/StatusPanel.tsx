@@ -12,21 +12,21 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
     const [displayNumbers, setDisplayNumbers] = useState<Set<number>>(new Set())
     const [displayNumbersRunId, setDisplayNumbersRunId] = useState<number>()
     useEffect(() => {
-        if (snapshot?.numbers) {
+        if (snapshot?.solutions) {
             if (snapshot.runId !== displayNumbersRunId) {
-                setDisplayNumbers(snapshot.numbers)
+                setDisplayNumbers(snapshot.solutions)
                 setDisplayNumbersRunId(snapshot.runId)
             } else {
                 setDisplayNumbers(current => {
                     const updated = new Set(current)
-                    for (const n of snapshot.numbers!.values()) {
+                    for (const n of snapshot.solutions!.values()) {
                         updated.add(n)
                     }
                     return updated
                 })
             }
         }
-    }, [displayNumbersRunId, snapshot?.numbers, snapshot?.runId])
+    }, [displayNumbersRunId, snapshot?.solutions, snapshot?.runId])
 
     useEffect(() => {
         setExtraLimit(0)
@@ -48,11 +48,16 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
         {snapshot &&
             <>
                 <div>Processing time: {formatTimestamp(snapshot.processingTimeMs)}</div>
-                {status === 'running' && (
-                    <div> Evaluating {snapshot.stackCount.toLocaleString()} candidates...</div>
-                )}
-                {status === 'paused' && (
-                    <div className="text-orange-400 dark:text-orange-400">Paused</div>
+                <div>Generated {snapshot.queuedTotal.toLocaleString()} candidates{' '}
+                    (skipped {snapshot.cacheHitTotal.toLocaleString()} duplicates)</div>
+                {(status === 'running' || status === 'paused') && (
+                    <div>
+                        {status === 'running' ?
+                            <span>Currently </span> :
+                            <span className="text-orange-400 dark:text-orange-400">Paused </span>
+                        }
+                        {snapshot.queueSize.toLocaleString()} candidates ({snapshot.cacheSize.toLocaleString()} cached)
+                    </div>
                 )}
                 {status === 'idle' && (
                     <div>Idle</div>
@@ -60,8 +65,8 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 {status === 'done' && (
                     <div className="text-green-600 dark:text-green-300">Finished</div>
                 )}
-                <div>Checked {snapshot.processedCount.toLocaleString()} combinations</div>
-                <div>Found <b>{snapshot.numberCount.toLocaleString()}</b> solutions</div>
+                <div>Checked {snapshot.processedTotal.toLocaleString()} candidates</div>
+                <div>Found <b>{snapshot.solutionCount.toLocaleString()}</b> solutions</div>
                 <NumberPanel numbers={displayNumbers} limit={options.displayLimit} status={status}/>
                 {snapshot.formulaMap &&
                     <FormulaPanel
