@@ -86,7 +86,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
 
 const NumberPanel = ({numbers, limit, status}: {numbers: Set<number>, limit: number, status: Status}) => {
     const solvedClass = 'text-green-600 dark:text-green-300'
-    const unsolvedClass = (status == 'done' ? 'text-red-600 dark:text-red-300' : 'text-gray-300 dark:text-gray-600')
+    const unsolvedClass = (status === 'done' ? 'text-red-600 dark:text-red-300' : 'text-gray-300 dark:text-gray-600')
     const displayNumbers = []
     let displaySolutionsCount = 0
     for (let i = 0; i <= limit; ++i) {

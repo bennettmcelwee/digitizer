@@ -159,7 +159,7 @@ const power = new NoncommutativeOperator({
     description: 'Raise an expression to the power of another, e.g. (1+2)^(2+2) = 81',
     precedence: 3,
     applyValues(formulaA, formulaB) {
-        if (formulaA.value == 0 && formulaB.value == 0) {
+        if (formulaA.value === 0 && formulaB.value === 0) {
             return null;
         }
         return Math.pow(formulaA.value, formulaB.value)
@@ -174,7 +174,7 @@ const squareRoot = new UnaryOperator({
     applyValue(formulaA) {
         // Only allow iterated root (√√x) if √x is an integer. This prevents infinite repeats
         const isIterated = formulaA.operator?.symbol === '√'
-        if (formulaA.value > 0 && formulaA.value !== 1 && (!isIterated || formulaA.value == Math.round(formulaA.value))) {
+        if (formulaA.value > 0 && formulaA.value !== 1 && (!isIterated || formulaA.value === Math.round(formulaA.value))) {
             return quantise(Math.sqrt(formulaA.value))
         } else {
             return null
