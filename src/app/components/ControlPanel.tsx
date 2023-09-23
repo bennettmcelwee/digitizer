@@ -3,6 +3,7 @@ import { groupBy, toPairs } from 'ramda'
 import React, { useRef, useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
 import { Operator, allOperators } from '@/operators'
+import ToggleButton from './ToggleButton'
 import ToggleSwitch from './ToggleSwitch'
 
 function combineDescriptions(operators: Operator[]): SymbolDetails[] {
@@ -115,7 +116,8 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                   const name = 'symbol' + sym.symbol
                   const isChecked = options.symbols.includes(sym.symbol)
                   return (
-                    <button key={sym.symbol}
+                    <ToggleButton key={sym.symbol}
+                      value={isChecked}
                       title={sym.descriptions.join('\n')}
                       className={`inline-block w-10 min-w-fit whitespace-nowrap ${isChecked ? '' : 'dimmed'} ${disabled ? 'opacity-50' : ''}`}
                       onClick={() => setValue(name, !isChecked)}
@@ -124,7 +126,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
                       disabled={disabled}
                     >
                       <b>{sym.symbol}</b>
-                    </button>
+                    </ToggleButton>
                   )
                 })
               }
@@ -154,8 +156,24 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         </label>
 
         {options.advanced && (
-          <div>
-            Strategy: {options.strategy}
+          <div className="flex flex-wrap gap-2">
+            <div className="pt-2">
+              Strategy
+            </div>
+            <ToggleButton
+              value={options.strategy === 'depth-first'}
+              title="Depth-first search"
+              onClick={() => setValue('strategy', 'depth-first')}
+            >
+              Depth-first
+            </ToggleButton>
+            <ToggleButton
+              value={options.strategy === 'breadth-first'}
+              title="Breadth-first search"
+              onClick={() => setValue('strategy', 'breadth-first')}
+            >
+              Breadth-first
+            </ToggleButton>
           </div>
         )}
 
