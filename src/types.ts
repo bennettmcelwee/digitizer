@@ -12,7 +12,7 @@ export interface Snapshot {
     cacheSize: number,
     // progress
     processingTimeMs: number,
-    queuedTotal: number,
+    checkedTotal: number,
     cacheHitTotal: number,
     processedTotal: number,
     solutionCount: number,

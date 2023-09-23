@@ -48,7 +48,7 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
         {snapshot &&
             <>
                 <div>Processing time: {formatTimestamp(snapshot.processingTimeMs)}</div>
-                <div>Generated {snapshot.queuedTotal.toLocaleString()} candidates{' '}
+                <div>Checked {snapshot.checkedTotal.toLocaleString()} candidates{' '}
                     (skipped {snapshot.cacheHitTotal.toLocaleString()} duplicates)</div>
                 {(status === 'running' || status === 'paused') && (
                     <div>

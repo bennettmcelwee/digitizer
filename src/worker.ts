@@ -49,7 +49,7 @@ interface State {
     queuedCache: Set<string>, // cache of ids of processed groups
     // progress
     processingTimeMs: number,
-    queuedTotal: number, // number of groups added to the queue
+    checkedTotal: number, // number of groups checked and added to the queue
     cacheHitTotal: number, // number of groups not added to the queue because they were in the cache
     processedTotal: number, // number of groups processed and removed from the queue
     solutions: FormulaMap,
@@ -178,7 +178,7 @@ function buildInitialState(): State {
         running: true,
         pause: false,
         processingTimeMs: 0,
-        queuedTotal: 1,
+        checkedTotal: 1,
         processedTotal: 0,
         cacheHitTotal: 0,
         queuedCache: new Set<string>(),
@@ -231,10 +231,6 @@ function processNextGroup(state: State) {
         return false
     }
 
-    // Check if this group is a solution
-    if (group.formulas.length === 1 || !settings.useAllDigits) {
-        addSolutions(state.solutions, group.formulas)
-    }
     const evolvedGroups = evolveGroup(group)
 
     for (const evolvedGroup of evolvedGroups) {
@@ -242,8 +238,9 @@ function processNextGroup(state: State) {
         if (state.queuedCache.has(id)) {
             state.cacheHitTotal++
         } else {
+            // Add this new group to the queue
             queue.enqueue(evolvedGroup)
-            state.queuedTotal++
+            state.checkedTotal++
             if (state.queuedCache.size >= 10000000) {
                 // The cache is too full and will exhaust memory soon (or the maximum allowed
                 // Set size which is 2^24).
@@ -254,6 +251,10 @@ function processNextGroup(state: State) {
                 state.queuedCache = new Set()
             }
             state.queuedCache.add(id)
+            // Check if this group is a solution
+            if (evolvedGroup.formulas.length === 1 || !settings.useAllDigits) {
+                addSolutions(state.solutions, evolvedGroup.formulas)
+            }
         }
     }
 
@@ -419,7 +420,7 @@ function showSnapshot(state: State, showFormulas: boolean = false) {
         runId: state.runId,
         processingTimeMs,
         queueSize: state.queue.length(),
-        queuedTotal: state.queuedTotal,
+        checkedTotal: state.checkedTotal,
         cacheSize: state.queuedCache.size,
         processedTotal: state.processedTotal,
         cacheHitTotal: state.cacheHitTotal,
