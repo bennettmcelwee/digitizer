@@ -5,6 +5,8 @@ export type Status = 'idle' | 'running' | 'paused' | 'done'
 
 export type FormulaTextMap = Record<number, string>
 
+export type QueueStrategy = 'depth-first' | 'breadth-first'
+
 export interface Snapshot {
     runId: number,
     // current
@@ -29,12 +31,14 @@ export interface Options {
     useAllDigits: boolean,
     preserveOrder: boolean,
     symbols: string[],
+    advanced: boolean,
     // Display
     displayLimit: number,
     quiet: boolean,
     heartbeatSeconds: number,
     // Internals
     valueLimit: number,
+    strategy: QueueStrategy,
     // Timing
     yieldSeconds: number,
     maxDurationSeconds: number,

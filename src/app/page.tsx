@@ -15,12 +15,14 @@ const DEFAULT_OPTIONS: Options = {
   useAllDigits: true,
   preserveOrder: false,
   symbols: ['( )', '+', '-', '×', '÷', '&', '!', '^'],
+  advanced: false,
   // Display
   displayLimit: 100,
   quiet: false,
   heartbeatSeconds: 0.5,
   // Internals
   valueLimit: 10000,
+  strategy: 'breadth-first',
   // Timing
   yieldSeconds: 1,
   maxDurationSeconds: 5,

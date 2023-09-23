@@ -41,6 +41,9 @@ const StatusPanel = ({ options, status, snapshot }: StatusPanelProps) => {
                 {options.useAllDigits && (
                     'using all digits ' + (options.preserveOrder ? ' in order ' : '')
                 )}
+                {options.advanced && (
+                    'using ' + options.strategy + ' search '
+                )}
                 for {options.maxDurationSeconds} seconds
             </p>
         }

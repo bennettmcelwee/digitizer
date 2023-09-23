@@ -39,6 +39,10 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
     setValue(name, value)
   }
 
+  const toggleAdvanced: React.MouseEventHandler = (event) => {
+    setValue('advanced', !options.advanced)
+  }
+
   const handleFocus = (symbol: SymbolDetails) => {
     setSymbolHelp(symbol)
     const element = symbolHelpRef.current
@@ -148,6 +152,12 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           {' '}seconds
         </label>
 
+        {options.advanced && (
+          <div>
+            Strategy: {options.strategy}
+          </div>
+        )}
+
         <div className="grid grid-flow-col auto-cols-fr gap-2 w-fit">
 
           <button onClick={start}
@@ -165,6 +175,8 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           <button onClick={stop}
             className={status === 'running' || status === 'paused' ? '' : 'dimmed'}
             >Stop</button>
+
+          <a href="#" onClick={toggleAdvanced}>Advanced options</a>
         </div>
     </section>
   )

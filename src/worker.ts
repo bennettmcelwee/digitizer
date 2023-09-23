@@ -1,11 +1,9 @@
 // Copyright 2023 Bennett McElwee. All rights reserved.
-import { Formula, FormulaGroup, FormulaTextMap, Options, Settings } from './types'
+import { Formula, FormulaGroup, FormulaTextMap, Options, QueueStrategy, Settings } from './types'
 import { BinaryOperator, Operator, UnaryOperator, allOperators } from './operators'
 import { AppMessage } from './app/page'
 
 type FormulaMap = Record<number, Formula>
-
-type QueueStrategy = 'depthfirst' | 'breadthfirst'
 
 interface Queue {
     length: () => number,
@@ -27,9 +25,9 @@ class QueueImpl implements Queue {
     enqueue(group: FormulaGroup) { this.queue.push(group) }
     dequeue() {
         switch (this.strategy) {
-            case 'depthfirst': return this.queue.pop()!
-            // case 'breadthfirst': return this.queue.shift()!
-            case 'breadthfirst': {
+            case 'depth-first': return this.queue.pop()!
+            // case 'breadth-first': return this.queue.shift()!
+            case 'breadth-first': {
                 if (this.first < this.queue.length) {
                     return this.queue[this.first++]
                 } else {
@@ -184,8 +182,7 @@ function buildInitialState(): State {
         queuedCache: new Set<string>(),
         queue: new QueueImpl(
             [{ formulas: digits.map(digitToFormula) }],
-            'breadthfirst'
-            // 'depthfirst'
+            settings.strategy
         ),
         solutions: {},
     }
