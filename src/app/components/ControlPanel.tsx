@@ -3,7 +3,7 @@ import { groupBy, toPairs } from 'ramda'
 import React, { useRef, useState } from 'react'
 import { Options, Status, SymbolDetails } from '../../types'
 import { Operator, allOperators } from '@/operators'
-import ToggleButton from './ToggleButton'
+import ToggleSwitch from './ToggleSwitch'
 
 function combineDescriptions(operators: Operator[]): SymbolDetails[] {
   const grouped = groupBy<Operator, string>(_ => _.symbol)(operators) as Record<string, Operator[]>
@@ -41,6 +41,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
 
   const toggleAdvanced: React.MouseEventHandler = (event) => {
     setValue('advanced', !options.advanced)
+    event.preventDefault()
   }
 
   const handleFocus = (symbol: SymbolDetails) => {
@@ -93,11 +94,11 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
           </div>
 
           <div className="flex flex-wrap gap-4">
-            <ToggleButton id="useall" name="useAllDigits"
+            <ToggleSwitch id="useall" name="useAllDigits"
               label="Use all digits" value={options.useAllDigits}
               disabled={disabled} onChange={handleChange}
             />
-            <ToggleButton id="order" name="preserveOrder"
+            <ToggleSwitch id="order" name="preserveOrder"
               label="Keep digits in order" value={options.preserveOrder}
               disabled={disabled || !options.useAllDigits} onChange={handleChange}
             />
@@ -105,7 +106,7 @@ const ControlPanel = ({options, status, start, pause, resume, stop, setValue}: C
         </div>
 
         <div className="flex gap-2">
-          <div className="pt-1.5">
+          <div className="pt-2">
             Symbols
           </div>
           <div>

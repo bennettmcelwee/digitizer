@@ -1,5 +1,5 @@
 // Copyright 2023 Bennett McElwee. All rights reserved.
-interface ToggleButtonProps {
+interface ToggleSwitchProps {
     disabled: boolean,
     id: string,
     label: string,
@@ -7,7 +7,7 @@ interface ToggleButtonProps {
     onChange: React.ChangeEventHandler<HTMLInputElement>,
     value: boolean,
 }
-const ToggleButton = ({ disabled, id, label, name, onChange, value }: ToggleButtonProps) => (
+const ToggleSwitch = ({ disabled, id, label, name, onChange, value }: ToggleSwitchProps) => (
     <span className="flex items-center gap-2">
         <label htmlFor={id} className={`inline-block relative h-7 w-11 rounded-full border-2 ${
             value ? 'border-green-700 dark:border-gray-200' : 'border-gray-400 dark:border-gray-500'
@@ -34,4 +34,4 @@ const ToggleButton = ({ disabled, id, label, name, onChange, value }: ToggleButt
     </span>
 )
 
-export default ToggleButton
+export default ToggleSwitch
